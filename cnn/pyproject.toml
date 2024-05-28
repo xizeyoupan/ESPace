@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "cnn"
+version = "0.1.0"
+description = ""
+authors = ["xizeyoupan <44920131+xizeyoupan@users.noreply.github.com>"]
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pyserial = "^3.5"
+torch = "^2.3.0"
+torchvision = "^0.18.0"
+torchaudio = "^2.3.0"
+pandas = "^2.2.2"
+matplotlib = "^3.8.4"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

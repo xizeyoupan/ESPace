@@ -77,58 +77,6 @@ static const char* TAG = "IMU";
 #define delay(ms) esp_rom_delay_us(ms * 1000)
 
 MPU6050 mpu;
-Kalman kalmanX; // Create the Kalman instances
-Kalman kalmanY;
-
-// Accel & Gyro scale factor
-float accel_sensitivity;
-float gyro_sensitivity;
-
-// Get scaled value
-void _getMotion6(double* _ax, double* _ay, double* _az, double* _gx, double* _gy, double* _gz)
-{
-    int16_t ax, ay, az;
-    int16_t gx, gy, gz;
-    // read raw accel/gyro measurements from device
-    // The accelerometer output is a 16-bit signed integer relative value.
-    // The gyroscope output is a relative value in degrees per second (dps).
-    mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
-
-    // Convert relative to absolute
-#if 1
-    *_ax = (double)ax / accel_sensitivity;
-    *_ay = (double)ay / accel_sensitivity;
-    *_az = (double)az / accel_sensitivity;
-#else
-    *_ax = (double)ax;
-    *_ay = (double)ay;
-    *_az = (double)az;
-#endif
-
-    // Convert relative to absolute
-#if 1
-    *_gx = (double)gx / gyro_sensitivity;
-    *_gy = (double)gy / gyro_sensitivity;
-    *_gz = (double)gz / gyro_sensitivity;
-#else
-    *_gx = (double)gx;
-    *_gy = (double)gy;
-    *_gz = (double)gz;
-#endif
-}
-
-void getRollPitch(double accX, double accY, double accZ, double* roll, double* pitch)
-{
-    // atan2 outputs the value of -πto π(radians) - see http://en.wikipedia.org/wiki/Atan2
-    // It is then converted from radians to degrees
-#ifdef RESTRICT_PITCH // Eq. 25 and 26
-    *roll = atan2(accY, accZ) * RAD_TO_DEG;
-    *pitch = atan(-accX / sqrt(accY * accY + accZ * accZ)) * RAD_TO_DEG;
-#else // Eq. 28 and 29
-    *roll = atan(accY / sqrt(accX * accX + accZ * accZ)) * RAD_TO_DEG;
-    *pitch = atan2(-accX, accZ) * RAD_TO_DEG;
-#endif
-}
 
 void mpu6050(void* pvParameters)
 {
@@ -161,129 +109,61 @@ void mpu6050(void* pvParameters)
     // Set Accelerometer Full Scale Range to ±2g
     if (mpu.getFullScaleAccelRange() != 0)
         mpu.setFullScaleAccelRange(0); // -2 --> +2[g]
-    accel_sensitivity = 16384.0; // g
 
     // Get Gyro Scale Range
     ESP_LOGI(TAG, "getFullScaleGyroRange()=%d", mpu.getFullScaleGyroRange());
     // Set Gyro Full Scale Range to ±250deg/s
     if (mpu.getFullScaleGyroRange() != 0)
         mpu.setFullScaleGyroRange(0); // -250 --> +250[Deg/Sec]
-    gyro_sensitivity = 131.0; // Deg/Sec
 
-    // Set Kalman and gyro starting angle
-    double ax, ay, az;
-    double gx, gy, gz;
-    double roll, pitch; // Roll and pitch are calculated using the accelerometer
-    double kalAngleX, kalAngleY; // Calculated angle using a Kalman filter
+    int16_t ax, ay, az;
+    int16_t gx, gy, gz;
 
-    _getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
-    getRollPitch(ax, ay, az, &roll, &pitch);
-    kalAngleX = roll;
-    kalAngleY = pitch;
-    kalmanX.setAngle(roll); // Set starting angle
-    kalmanY.setAngle(pitch);
-    uint32_t timer = micros();
+    gpio_config_t key_conf = {
+        .pin_bit_mask = (1ULL << 9),
+        .mode = GPIO_MODE_INPUT,
+        .pull_up_en = GPIO_PULLUP_ENABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE,
+    };
+    gpio_config(&key_conf);
 
-    int elasped = 0;
-    bool initialized = false;
-    double initial_kalAngleX = 0.0;
-    double initial_kalAngleY = 0.0;
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
 
+    TickType_t xLastWakeTime = xTaskGetTickCount();
+    uint16_t index = 0;
+    uint8_t cnt = 0;
     while (1) {
-        _getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
-        // printf("%f %f %f - %f %f %f\n", ax, ay, az, gx, gy, gz);
-        getRollPitch(ax, ay, az, &roll, &pitch);
-
-        double dt = (double)(micros() - timer) / 1000000; // Calculate delta time
-        timer = micros();
-
-        /* Roll and pitch estimation */
-        double gyroXrate = gx;
-        double gyroYrate = gy;
-
-#ifdef RESTRICT_PITCH
-        // This fixes the transition problem when the accelerometer angle jumps between -180 and 180 degrees
-        if ((roll < -90 && kalAngleX > 90) || (roll > 90 && kalAngleX < -90)) {
-            kalmanX.setAngle(roll);
-            kalAngleX = roll;
-        } else
-            kalAngleX = kalmanX.getAngle(roll, gyroXrate, dt); // Calculate the angle using a Kalman filter
-
-        if (abs(kalAngleX) > 90)
-            gyroYrate = -gyroYrate; // Invert rate, so it fits the restriced accelerometer reading
-        kalAngleY = kalmanY.getAngle(pitch, gyroYrate, dt);
-#else
-        // This fixes the transition problem when the accelerometer angle jumps between -180 and 180 degrees
-        if ((pitch < -90 && kalAngleY > 90) || (pitch > 90 && kalAngleY < -90)) {
-            kalmanY.setAngle(pitch);
-            kalAngleY = pitch;
-        } else
-            kalAngleY = kalmanY.getAngle(pitch, gyroYrate, dt); // Calculate the angle using a Kalman filter
-
-        if (abs(kalAngleY) > 90)
-            gyroXrate = -gyroXrate; // Invert rate, so it fits the restriced accelerometer reading
-        kalAngleX = kalmanX.getAngle(roll, gyroXrate, dt); // Calculate the angle using a Kalman filter
-#endif
-
-        /* Print Data every 10 times */
-        if (elasped > 10) {
-            // Set the first data
-            if (!initialized) {
-                initial_kalAngleX = kalAngleX;
-                initial_kalAngleY = kalAngleY;
-                initialized = true;
-            }
-
-#if 0
-			printf("roll:%f", roll); printf(" ");
-			printf("kalAngleX:%f", kalAngleX); printf(" ");
-			printf("initial_kalAngleX:%f", initial_kalAngleX); printf(" ");
-			printf("kalAngleX-initial_kalAngleX:%f", kalAngleX-initial_kalAngleX); printf(" ");
-			printf("\n");
-
-			printf("pitch:%f", pitch); printf(" ");
-			printf("kalAngleY:%f", kalAngleY); printf(" ");
-			printf("initial_kalAngleY:%f", initial_kalAngleY); printf(" ");
-			printf("kalAngleY-initial_kalAngleY: %f", kalAngleY-initial_kalAngleY); printf(" ");
-			printf("\n");
-#endif
-
-            // Send UDP packet
-            float _roll = kalAngleX - initial_kalAngleX;
-            float _pitch = kalAngleY - initial_kalAngleY;
-            ESP_LOGI(TAG, "roll:%f pitch=%f", _roll, _pitch);
-
-            POSE_t pose;
-            pose.roll = _roll;
-            pose.pitch = _pitch;
-            pose.yaw = 0.0;
-            // if (xQueueSend(xQueueTrans, &pose, 100) != pdPASS ) {
-            // 	ESP_LOGE(TAG, "xQueueSend fail");
-            // }
-
-            // Send WEB request
-            cJSON* request;
-            request = cJSON_CreateObject();
-            cJSON_AddStringToObject(request, "id", "data-request");
-            cJSON_AddNumberToObject(request, "roll", _roll);
-            cJSON_AddNumberToObject(request, "pitch", _pitch);
-            cJSON_AddNumberToObject(request, "yaw", 0.0);
-            char* my_json_string = cJSON_Print(request);
-            ESP_LOGD(TAG, "my_json_string\n%s", my_json_string);
-            size_t xBytesSent = xMessageBufferSend(xMessageBufferToClient, my_json_string, strlen(my_json_string), 100);
-            if (xBytesSent != strlen(my_json_string)) {
-                ESP_LOGE(TAG, "xMessageBufferSend fail");
-            }
-            cJSON_Delete(request);
-            cJSON_free(my_json_string);
-
-            vTaskDelay(1);
-            elasped = 0;
+        vTaskDelayUntil(&xLastWakeTime, 10 / portTICK_PERIOD_MS);
+        int key_press = gpio_get_level(GPIO_NUM_9);
+        if (key_press) {
+            cnt = 0;
+            continue;
         }
 
-        elasped++;
-        vTaskDelay(1);
-    } // end while
+        cJSON* request;
+        request = cJSON_CreateObject();
+        // cJSON_AddStringToObject(request, "id", "data-request");
+        mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
+        cJSON_AddNumberToObject(request, "ax", ax);
+        cJSON_AddNumberToObject(request, "ay", ay);
+        cJSON_AddNumberToObject(request, "az", az);
+        cJSON_AddNumberToObject(request, "gx", gx);
+        cJSON_AddNumberToObject(request, "gy", gy);
+        cJSON_AddNumberToObject(request, "gz", gz);
+        cJSON_AddNumberToObject(request, "index", index);
+        cJSON_AddNumberToObject(request, "cnt", cnt);
+        char* my_json_string = cJSON_Print(request);
+        // ESP_LOGI("", "%s", my_json_string);
+        printf("%s\n", my_json_string);
+        cJSON_Delete(request);
+        cJSON_free(my_json_string);
+
+        if (++cnt == 50) {
+            cnt = 0;
+            index++;
+        }
+    }
 
     // Never reach here
     vTaskDelete(NULL);
