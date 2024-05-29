@@ -2,6 +2,7 @@ import os
 from torch.utils.data import Dataset, DataLoader
 from util import CURRENTPATH
 import numpy as np
+import torch
 
 
 class MyDataset(Dataset):
@@ -18,6 +19,9 @@ class MyDataset(Dataset):
 
             # print(item)
             # print(feat.shape, feat.dtype)
+
+            feat = torch.from_numpy(feat)
+
             index = int(item[0])
             label = int(item[-1])
             for (i, v) in enumerate(feat):
