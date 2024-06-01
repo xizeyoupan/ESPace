@@ -13,4 +13,3 @@ typedef struct {
 	float pitch;
 	float yaw;
 } POSE_t;
-

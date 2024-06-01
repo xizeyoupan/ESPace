@@ -55,7 +55,8 @@ THE SOFTWARE.
 
 #include "parameter.h"
 
-extern QueueHandle_t xQueueTrans;
+extern float p_data[50][6];
+extern QueueHandle_t xQueueTrans, xQueuePdata;
 extern MessageBufferHandle_t xMessageBufferToClient;
 
 static const char* TAG = "IMU";
@@ -72,14 +73,12 @@ static const char* TAG = "IMU";
 #define RAD_TO_DEG (180.0 / M_PI)
 #define DEG_TO_RAD 0.0174533
 
-// Arduino macro
-#define micros() (unsigned long)(esp_timer_get_time())
-#define delay(ms) esp_rom_delay_us(ms * 1000)
-
 MPU6050 mpu;
+
 
 void mpu6050(void* pvParameters)
 {
+
     // Initialize mpu6050
     mpu.initialize();
 
@@ -145,6 +144,14 @@ void mpu6050(void* pvParameters)
         request = cJSON_CreateObject();
         // cJSON_AddStringToObject(request, "id", "data-request");
         mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
+
+        p_data[cnt][0] = ax;
+        p_data[cnt][1] = ay;
+        p_data[cnt][2] = az;
+        p_data[cnt][3] = gx;
+        p_data[cnt][4] = gy;
+        p_data[cnt][5] = gz;
+
         cJSON_AddNumberToObject(request, "ax", ax);
         cJSON_AddNumberToObject(request, "ay", ay);
         cJSON_AddNumberToObject(request, "az", az);
@@ -155,13 +162,17 @@ void mpu6050(void* pvParameters)
         cJSON_AddNumberToObject(request, "cnt", cnt);
         char* my_json_string = cJSON_Print(request);
         // ESP_LOGI("", "%s", my_json_string);
-        printf("%s\n", my_json_string);
+        // printf("%s\n", my_json_string);
         cJSON_Delete(request);
         cJSON_free(my_json_string);
 
         if (++cnt == 50) {
             cnt = 0;
             index++;
+
+            if (xQueueSend(xQueuePdata, (void*)&p_data, 100) != pdPASS) {
+                ESP_LOGE(pcTaskGetName(NULL), "xQueueSend fail");
+            }
         }
     }
 
