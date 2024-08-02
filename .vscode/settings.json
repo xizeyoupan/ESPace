@@ -1,9 +1,9 @@
 {
-    "idf.adapterTargetName": "esp32c3",
+    "idf.adapterTargetName": "esp32",
     "idf.openOcdConfigs": [
-        "board/esp32c3-builtin.cfg"
+        "board/esp32-bridge.cfg"
     ],
-    "idf.portWin": "COM5",
+    "idf.portWin": "COM15",
     "idf.flashType": "UART",
     "files.associations": {
         "array": "cpp",
@@ -76,5 +76,6 @@
         "thread": "cpp",
         "typeinfo": "cpp",
         "variant": "cpp"
-    }
+    },
+    "C_Cpp.default.compilerPath": "C:\\Espressif\\tools\\xtensa-esp-elf\\esp-13.2.0_20230928\\xtensa-esp-elf\\bin\\xtensa-esp32-elf-gcc.exe"
 }

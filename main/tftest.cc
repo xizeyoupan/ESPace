@@ -62,7 +62,7 @@ constexpr int kFeatureElementCount = (kFeatureSize * kFeatureCount);
 // Variables for the model's output categories.
 constexpr int kCategoryCount = 3;
 
-constexpr size_t kArenaSize = 100 * 1024; // xtensa p6
+constexpr size_t kArenaSize = 80 * 1024; // xtensa p6
 uint8_t g_arena[kArenaSize];
 
 typedef float modeltype;
