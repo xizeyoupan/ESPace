@@ -1,5 +1,6 @@
 #include "driver/i2c.h"
 #include "esp_log.h"
+#include "esp_task_wdt.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/message_buffer.h"
 #include "freertos/queue.h"
@@ -20,7 +21,6 @@ static const char* MDNS_HOSTNAME = "ESP32";
 QueueHandle_t xQueueTrans, xQueuePdata;
 float p_data[50][6];
 
-
 extern "C" {
 void app_main(void);
 }
@@ -37,6 +37,7 @@ int ws_server_start(void);
 void udp_trans(void* pvParameters);
 void server_task(void* pvParameters);
 void client_task(void* pvParameters);
+void wifi_sacn_loop(void* pvParameters);
 #ifdef __cplusplus
 }
 #endif
@@ -75,7 +76,7 @@ void start_i2c(void)
 void app_main(void)
 {
     // Initialize WiFi
-    // start_wifi();
+    start_wifi();
 
     // Initialize mDNS
     // start_mdns();
@@ -113,6 +114,8 @@ void app_main(void)
     xTaskCreate(&mpu6050, "IMU", 1024 * 8, NULL, 5, NULL);
 
     xTaskCreate(&start_test, "tesst", 1024 * 20, NULL, 5, NULL);
+
+    xTaskCreate(&wifi_sacn_loop, "wifi_scan", 1024 * 10, NULL, 5, NULL);
 
     // Start udp task
     // xTaskCreate(&udp_trans, "UDP", 1024*3, NULL, 5, NULL);

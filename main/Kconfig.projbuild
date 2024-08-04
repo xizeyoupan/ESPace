@@ -30,18 +30,14 @@ menu "Application Configuration"
 	config GPIO_SCL
 		int "SCL GPIO number"
 		range 0 GPIO_RANGE_MAX
-		default 22 if IDF_TARGET_ESP32
-		default 12 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
-		default  5 # C3 and others
+		default  5
 		help
 			GPIO number (IOxx) to I2C SCL.
 
 	config GPIO_SDA
 		int "SDA GPIO number"
 		range 0 GPIO_RANGE_MAX
-		default 21 if IDF_TARGET_ESP32
-		default 11 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
-		default  4 # C3 and others
+		default  10
 		help
 			GPIO number (IOxx) of SDA.
 

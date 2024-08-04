@@ -6,7 +6,7 @@
                 "${config:idf.espIdfPathWin}/components/**",
                 "${workspaceFolder}/**"
             ],
-            "compilerPath": "c:\\Program Files (x86)\\Arm GNU Toolchain arm-none-eabi\\13.2 Rel1\\bin\\arm-none-eabi-gcc-13.2.1.exe"
+            "compilerPath": "${config:idf.toolsPathWin}\\tools\\xtensa-esp-elf\\esp-13.2.0_20230928\\xtensa-esp-elf\\bin\\xtensa-esp32-elf-gcc.exe"
         }
     ],
     "version": 4
