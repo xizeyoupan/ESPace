@@ -9,12 +9,17 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 #include "freertos/task.h"
+#include "esp_http_server.h"
+#include "nvs_flash.h"
 #include <string.h>
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
+
+    static void start_ap_mode();
+    void wand_server_task(void *pvParameters);
 
 #ifdef __cplusplus
 }

@@ -4,7 +4,7 @@
         "interface/ftdi/esp32_devkitj_v1.cfg",
         "target/esp32.cfg"
     ],
-    "idf.portWin": "COM3",
+    "idf.portWin": "COM26",
     "idf.flashType": "UART",
     "files.associations": {
         "*.c": "c",
@@ -81,6 +81,8 @@
         "event_groups.h": "c",
         "esp_server_task.h": "c",
         "freertos.h": "c",
-        "wand_server_task.h": "c"
+        "wand_server_task.h": "c",
+        "esp_system.h": "c",
+        "cjson.h": "c"
     },
 }
