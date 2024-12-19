@@ -83,6 +83,11 @@
         "freertos.h": "c",
         "wand_server_task.h": "c",
         "esp_system.h": "c",
-        "cjson.h": "c"
+        "cjson.h": "c",
+        "nvs_util.h": "c",
+        "http_util.h": "c",
+        "esp_http_server.h": "c",
+        "config.h": "c",
+        "user_config.h": "c"
     },
 }

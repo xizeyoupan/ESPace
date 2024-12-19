@@ -14,12 +14,13 @@
 #include "tftest.h"
 #include "websocket_server.h"
 
+
+
 #include "wand_server_task.h"
 
 MessageBufferHandle_t xMessageBufferToClient;
 
 static const char *TAG = "MAIN";
-static const char *MDNS_HOSTNAME = "ESP32";
 
 void app_main(void)
 {
