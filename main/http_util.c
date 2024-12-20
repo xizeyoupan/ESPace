@@ -118,6 +118,16 @@ static char *get_device_info(void)
     }
     cJSON_AddItemToObject(data, "firmware_version", firmware_version);
 
+    cJSON *idf_version = NULL;
+    char idf_version_str[16];
+    sprintf(idf_version_str, "%d.%d.%d", ESP_IDF_VERSION_MAJOR, ESP_IDF_VERSION_MINOR, ESP_IDF_VERSION_PATCH);
+    idf_version = cJSON_CreateString(idf_version_str);
+    if (idf_version == NULL)
+    {
+        goto get_device_info_end;
+    }
+    cJSON_AddItemToObject(data, "idf_version", idf_version);
+
     string = cJSON_Print(data);
     if (string == NULL)
     {
@@ -163,12 +173,12 @@ httpd_handle_t start_webserver()
     };
     httpd_register_uri_handler(server, &config_uri);
 
-    httpd_uri_t dev_uri = {
-        .uri = "/dev",
+    httpd_uri_t info_uri = {
+        .uri = "/info",
         .method = HTTP_GET,
         .handler = device_info_get_handler,
     };
-    httpd_register_uri_handler(server, &dev_uri);
+    httpd_register_uri_handler(server, &info_uri);
 
     ESP_LOGI(TAG, "start_webserver");
 
