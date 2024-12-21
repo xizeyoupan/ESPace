@@ -31,6 +31,30 @@ char* get_device_info(void)
     }
     cJSON_AddItemToObject(data, "firmware_version", firmware_version);
 
+    cJSON* package_version = NULL;
+    package_version = cJSON_CreateNumber(efuse_ll_get_chip_ver_pkg());
+    if (package_version == NULL) {
+        goto get_device_info_end;
+    }
+    cJSON_AddItemToObject(data, "package_version", package_version);
+
+    cJSON* chip_version = NULL;
+    chip_version = cJSON_CreateNumber(efuse_hal_chip_revision());
+    if (chip_version == NULL) {
+        goto get_device_info_end;
+    }
+    cJSON_AddItemToObject(data, "chip_version", chip_version);
+
+    cJSON* cpu_freq = NULL;
+    uint32_t cpu_freq_value;
+    ESP_ERROR_CHECK(esp_clk_tree_src_get_freq_hz(SOC_MOD_CLK_CPU, ESP_CLK_TREE_SRC_FREQ_PRECISION_APPROX, &cpu_freq_value));
+
+    cpu_freq = cJSON_CreateNumber(cpu_freq_value);
+    if (cpu_freq == NULL) {
+        goto get_device_info_end;
+    }
+    cJSON_AddItemToObject(data, "cpu_freq", cpu_freq);
+
     cJSON* idf_version = NULL;
     char idf_version_str[16];
     sprintf(idf_version_str, "%d.%d.%d", ESP_IDF_VERSION_MAJOR, ESP_IDF_VERSION_MINOR, ESP_IDF_VERSION_PATCH);

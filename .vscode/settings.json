@@ -92,6 +92,12 @@
         "wifi_service.h": "c",
         "device_service.h": "c",
         "esp_event.h": "c",
-        "http_controller.h": "c"
+        "http_controller.h": "c",
+        "esp_chip_info.h": "c",
+        "chip_revision.h": "c",
+        "efuse_hal.h": "c",
+        "esp_clk.h": "c",
+        "efuse_ll.h": "c",
+        "esp_clk_tree.h": "c"
     },
 }

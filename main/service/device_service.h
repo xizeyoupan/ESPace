@@ -6,6 +6,9 @@
 #include "nvs_util.h"
 #include "user_config.h"
 #include "wand_server_task.h"
+#include "hal/efuse_ll.h"
+#include "hal/efuse_hal.h"
+#include "esp_clk_tree.h"
 
 #ifdef __cplusplus
 extern "C" {

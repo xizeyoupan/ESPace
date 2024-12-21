@@ -6,7 +6,7 @@ extern "C"
 {
 #endif
 
-#define SW_VERSION "V0.0.1"
+#define SW_VERSION "v0.0.1"
 
 #ifdef __cplusplus
 }
