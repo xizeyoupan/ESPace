@@ -1,18 +1,17 @@
-#ifndef __HTTP_UTIL_H__
-#define __HTTP_UTIL_H__
+#ifndef __WIFI_SERVICE_H__
+#define __WIFI_SERVICE_H__
 
 #include "cJSON.h"
-#include "wand_server_task.h"
 #include "esp_http_server.h"
 #include "nvs_util.h"
 #include "user_config.h"
+#include "wand_server_task.h"
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
-    httpd_handle_t start_webserver();
+char* get_wifi_list(void);
 
 #ifdef __cplusplus
 }

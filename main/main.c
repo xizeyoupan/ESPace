@@ -36,7 +36,7 @@ void app_main(void)
     ESP_ERROR_CHECK(ret);
 
     // Start web server
-    xTaskCreate(&wand_server_task, "SERVER", 1024 * 3, NULL, 5, NULL);
+    xTaskCreate(&wand_server_task, "SERVER", 1024 * 5, NULL, 5, NULL);
 
     // Initialize WiFi
     // start_wifi();

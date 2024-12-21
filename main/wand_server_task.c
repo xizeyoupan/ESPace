@@ -1,54 +1,52 @@
 #include "wand_server_task.h"
 
-#define AP_SSID "ESP32_Config"
-#define AP_PASS "12345678"
-static const char *TAG = "WAND_SERVER_TASK";
-static const char *MDNS_HOSTNAME = "wand-esp32";
+#define AP_SSID CONFIG_ESP32_WAND_SSID
+#define AP_PASS CONFIG_ESP32_WAND_PASS
+static const char* TAG = "WAND_SERVER_TASK";
+static const char* MDNS_HOSTNAME = CONFIG_WAND_MDNS_HOSTNAME;
 
 /* FreeRTOS event group to signal when we are connected*/
 static EventGroupHandle_t s_wifi_event_group;
 
-static char wifi_ssid[WIFI_SSID_MAX_LEN] = {0};
-static char wifi_pass[WIFI_PASS_MAX_LEN] = {0};
+static char wifi_ssid[WIFI_SSID_MAX_LEN] = { 0 };
+static char wifi_pass[WIFI_PASS_MAX_LEN] = { 0 };
 
 const int WIFI_CONNECTED_BIT = BIT0;
 const int WIFI_FAIL_BIT = BIT1;
 
-static esp_netif_t *sta_netif = NULL;
-static esp_netif_t *ap_netif = NULL;
+static esp_netif_t* sta_netif = NULL;
+static esp_netif_t* ap_netif = NULL;
 
 static int s_retry_num = 0;
 
 // Wi-Fi 事件处理程序
-static void wifi_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
+static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
 {
-    if (event_base == WIFI_EVENT)
-    {
-        if (event_id == WIFI_EVENT_STA_START)
-        {
+    if (event_base == WIFI_EVENT) {
+        if (event_id == WIFI_EVENT_STA_START) {
             ESP_LOGI(TAG, "WIFI_EVENT_STA_START.");
             esp_wifi_connect();
-        }
-        else if (event_id == WIFI_EVENT_STA_DISCONNECTED)
-        {
-            if (s_retry_num < CONFIG_ESP_MAXIMUM_RETRY)
-            {
+        } else if (event_id == WIFI_EVENT_STA_DISCONNECTED) {
+            wifi_mode_t current_mode;
+            ESP_ERROR_CHECK(esp_wifi_get_mode(&current_mode));
+
+            if (current_mode != WIFI_MODE_STA) {
+                return;
+            }
+
+            if (s_retry_num < CONFIG_ESP_MAXIMUM_RETRY) {
                 esp_wifi_connect();
                 s_retry_num++;
                 ESP_LOGI(TAG, "retry to connect to the AP, cnt = %d", s_retry_num);
-            }
-            else
-            {
+            } else {
                 ESP_LOGI(TAG, "Failed to connect, switching back to AP mode.");
                 xEventGroupClearBits(s_wifi_event_group, WIFI_FAIL_BIT);
                 esp_wifi_stop();
                 start_ap_mode();
             }
         }
-    }
-    else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP)
-    {
-        ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
+    } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
+        ip_event_got_ip_t* event = (ip_event_got_ip_t*)event_data;
         ESP_LOGI(TAG, "Connected with IP Address:" IPSTR, IP2STR(&event->ip_info.ip));
         xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
         s_retry_num = 0;
@@ -68,8 +66,8 @@ void start_sta_mode()
         },
     };
 
-    strncpy((char *)sta_config.sta.ssid, wifi_ssid, strlen(wifi_ssid));
-    strncpy((char *)sta_config.sta.password, wifi_pass, strlen(wifi_pass));
+    strncpy((char*)sta_config.sta.ssid, wifi_ssid, strlen(wifi_ssid));
+    strncpy((char*)sta_config.sta.password, wifi_pass, strlen(wifi_pass));
 
     ESP_LOGI(TAG, "connecting to ap SSID:%s password:%s", sta_config.sta.ssid, sta_config.sta.password);
 
@@ -93,12 +91,11 @@ void start_ap_mode()
         },
     };
 
-    if (strlen(AP_PASS) == 0)
-    {
+    if (strlen(AP_PASS) == 0) {
         ap_config.ap.authmode = WIFI_AUTH_OPEN;
     }
 
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &ap_config));
     ESP_ERROR_CHECK(esp_wifi_start());
     ESP_LOGI(TAG, "AP Mode started. SSID:%s Password:%s", AP_SSID, AP_PASS);
@@ -125,12 +122,9 @@ esp_err_t start_wifi(void)
 
     start_webserver();
 
-    if (load_wifi_config(wifi_ssid, wifi_pass) == ESP_OK)
-    {
+    if (load_wifi_config(wifi_ssid, wifi_pass) == ESP_OK) {
         start_sta_mode();
-    }
-    else
-    {
+    } else {
         start_ap_mode();
     }
 
@@ -149,12 +143,11 @@ static void start_mdns(void)
     ESP_ERROR_CHECK(mdns_service_add(NULL, "_http", "_tcp", 80, NULL, 0));
 }
 
-void wand_server_task(void *pvParameters)
+void wand_server_task(void* pvParameters)
 {
     start_wifi();
     start_mdns();
-    while (1)
-    {
+    while (1) {
         vTaskDelay(pdMS_TO_TICKS(10));
     }
 }

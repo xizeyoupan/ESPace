@@ -4,7 +4,7 @@
         "interface/ftdi/esp32_devkitj_v1.cfg",
         "target/esp32.cfg"
     ],
-    "idf.portWin": "COM26",
+    "idf.portWin": "COM5",
     "idf.flashType": "UART",
     "files.associations": {
         "*.c": "c",
@@ -88,6 +88,10 @@
         "http_util.h": "c",
         "esp_http_server.h": "c",
         "config.h": "c",
-        "user_config.h": "c"
+        "user_config.h": "c",
+        "wifi_service.h": "c",
+        "device_service.h": "c",
+        "esp_event.h": "c",
+        "http_controller.h": "c"
     },
 }
