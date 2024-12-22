@@ -2,6 +2,9 @@
 
 static const char* TAG = "HTTP_CONTROLLER";
 
+#define MAX_PAYLOAD_LEN 128
+uint8_t ws_buf[MAX_PAYLOAD_LEN] = { 0 };
+
 static esp_err_t get_whoami_handler(httpd_req_t* req)
 {
     httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
@@ -77,6 +80,34 @@ static esp_err_t wifi_info_get_handler(httpd_req_t* req)
     return ESP_OK;
 }
 
+esp_err_t websocket_handler(httpd_req_t* req)
+{
+    if (req->method == HTTP_GET) {
+        ESP_LOGI(TAG, "Handshake done, connection open");
+        return ESP_OK;
+    }
+
+    // 处理 WebSocket 数据帧
+    httpd_ws_frame_t ws_pkt;
+    memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
+    ws_pkt.type = HTTPD_WS_TYPE_TEXT;
+    ws_pkt.payload = ws_buf;
+    httpd_ws_recv_frame(req, &ws_pkt, MAX_PAYLOAD_LEN);
+    ws_pkt.payload[ws_pkt.len] = 0;
+    ESP_LOGI(TAG, "Received: %s, size: %d", ws_pkt.payload, ws_pkt.len);
+
+    if (strcmp((char*)ws_pkt.payload, "whoami") == 0) {
+        const char* resp_str = "0721esp32wand";
+        strcpy((char*)ws_pkt.payload, resp_str);
+        ws_pkt.len = strlen(resp_str);
+    }
+
+    ws_pkt.type = HTTPD_WS_TYPE_TEXT;
+    httpd_ws_send_frame(req, &ws_pkt);
+
+    return ESP_OK;
+}
+
 // HTTP 服务器启动
 httpd_handle_t start_webserver()
 {
@@ -119,6 +150,14 @@ httpd_handle_t start_webserver()
         .handler = wifi_info_get_handler,
     };
     httpd_register_uri_handler(server, &wifi_info_uri);
+
+    httpd_uri_t ws_uri = {
+        .uri = "/ws",
+        .method = HTTP_GET,
+        .handler = websocket_handler,
+        .is_websocket = true
+    };
+    httpd_register_uri_handler(server, &ws_uri);
 
     ESP_LOGI(TAG, "start_webserver");
 
