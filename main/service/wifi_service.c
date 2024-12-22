@@ -41,12 +41,23 @@ char* get_wifi_list(void)
         ESP_LOGI(TAG, "SSID    \t\t%s", ap_info[i].ssid);
         ESP_LOGI(TAG, "RSSI    \t\t%d", ap_info[i].rssi);
         ESP_LOGI(TAG, "Channel \t\t%d", ap_info[i].primary);
+        ESP_LOGI(TAG, "BSSID   \t\t%02X%02X%02X%02X%02X%02X\n",
+            ap_info[i].bssid[0], ap_info[i].bssid[1], ap_info[i].bssid[2],
+            ap_info[i].bssid[3], ap_info[i].bssid[4], ap_info[i].bssid[5]);
+
+        char bssid[18];
+        sprintf(bssid, "%02X-%02X-%02X-%02X-%02X-%02X",
+            ap_info[i].bssid[0], ap_info[i].bssid[1], ap_info[i].bssid[2],
+            ap_info[i].bssid[3], ap_info[i].bssid[4], ap_info[i].bssid[5]);
 
         cJSON* wifi_item = cJSON_CreateObject();
         if (cJSON_AddStringToObject(wifi_item, "SSID", (char*)ap_info[i].ssid) == NULL) {
             goto get_wifi_list_end;
         }
         if (cJSON_AddNumberToObject(wifi_item, "RSSI", ap_info[i].rssi) == NULL) {
+            goto get_wifi_list_end;
+        }
+        if (cJSON_AddStringToObject(wifi_item, "BSSID", bssid) == NULL) {
             goto get_wifi_list_end;
         }
         if (cJSON_AddNumberToObject(wifi_item, "channel", ap_info[i].primary) == NULL) {
@@ -71,6 +82,89 @@ char* get_wifi_list(void)
     }
 
 get_wifi_list_end:
+    cJSON_Delete(data);
+    return string;
+}
+
+char* get_wifi_info(void)
+{
+    char* string = NULL;
+    cJSON* data = cJSON_CreateObject();
+    if (data == NULL) {
+        goto get_wifi_info_end;
+    }
+
+    wifi_mode_t current_mode;
+    ESP_ERROR_CHECK(esp_wifi_get_mode(&current_mode));
+
+    if (cJSON_AddNumberToObject(data, "WiFi_mode", current_mode) == NULL) {
+        goto get_wifi_info_end;
+    }
+
+    if (current_mode != WIFI_MODE_STA) {
+        goto get_wifi_info_print;
+    }
+
+    wifi_ap_record_t wifi_ap_record;
+    ESP_ERROR_CHECK(esp_wifi_sta_get_ap_info(&wifi_ap_record));
+    char bssid[18];
+    sprintf(bssid, "%02X-%02X-%02X-%02X-%02X-%02X",
+        wifi_ap_record.bssid[0], wifi_ap_record.bssid[1], wifi_ap_record.bssid[2],
+        wifi_ap_record.bssid[3], wifi_ap_record.bssid[4], wifi_ap_record.bssid[5]);
+
+    if (cJSON_AddStringToObject(data, "SSID", (char*)wifi_ap_record.ssid) == NULL) {
+        goto get_wifi_info_end;
+    }
+    if (cJSON_AddNumberToObject(data, "RSSI", wifi_ap_record.rssi) == NULL) {
+        goto get_wifi_info_end;
+    }
+    if (cJSON_AddStringToObject(data, "BSSID", bssid) == NULL) {
+        goto get_wifi_info_end;
+    }
+    if (cJSON_AddNumberToObject(data, "channel", wifi_ap_record.primary) == NULL) {
+        goto get_wifi_info_end;
+    }
+
+    esp_netif_t* netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
+    if (netif == NULL) {
+        ESP_LOGE(TAG, "Failed to get network interface");
+        goto get_wifi_info_end;
+    }
+
+    esp_netif_ip_info_t ip_info;
+    if (esp_netif_get_ip_info(netif, &ip_info) == ESP_OK) {
+        char ip[16];
+        char gw[16];
+        char netmask[16];
+        sprintf(ip, IPSTR, IP2STR(&ip_info.ip));
+        sprintf(gw, IPSTR, IP2STR(&ip_info.gw));
+        sprintf(netmask, IPSTR, IP2STR(&ip_info.netmask));
+        ESP_LOGI(TAG, "IP:         %s", ip);
+        ESP_LOGI(TAG, "Gateway IP: %s", gw);
+        ESP_LOGI(TAG, "Netmask:    %s", netmask);
+
+        if (cJSON_AddStringToObject(data, "ip", ip) == NULL) {
+            goto get_wifi_info_end;
+        }
+        if (cJSON_AddStringToObject(data, "gw", gw) == NULL) {
+            goto get_wifi_info_end;
+        }
+        if (cJSON_AddStringToObject(data, "netmask", netmask) == NULL) {
+            goto get_wifi_info_end;
+        }
+    } else {
+        ESP_LOGE(TAG, "Failed to get IP information");
+        goto get_wifi_info_end;
+    }
+
+get_wifi_info_print:
+    string = cJSON_Print(data);
+    if (string == NULL) {
+        ESP_LOGE(TAG, "string == NULL");
+        goto get_wifi_info_end;
+    }
+
+get_wifi_info_end:
     cJSON_Delete(data);
     return string;
 }

@@ -58,6 +58,8 @@ void start_sta_mode()
 {
     ESP_LOGI(TAG, "Starting STA Mode...");
     esp_wifi_stop();
+    s_retry_num = 0;
+    load_wifi_config(wifi_ssid, wifi_pass);
 
     wifi_config_t sta_config = {
         .sta = {

@@ -12,6 +12,7 @@ extern "C" {
 #endif
 
 char* get_wifi_list(void);
+char* get_wifi_info(void);
 
 #ifdef __cplusplus
 }

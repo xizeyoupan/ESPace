@@ -11,9 +11,18 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: "recursive"
+
       - name: esp-idf build
         uses: espressif/esp-idf-ci-action@v1
         with:
           esp_idf_version: v5.2.3
           target: esp32
           path: "."
+
+      - name: Archive build output artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          path: |
+            build/bootloader/bootloader.bin
+            build/partition_table/partition-table.bin
+            build/${{ github.event.repository.name }}.bin
