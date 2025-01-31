@@ -55,3 +55,46 @@ load_wifi_config_end:
     nvs_close(nvs_handle);
     return err;
 }
+
+esp_err_t save_to_namespace(char *namespace, char *key, char *value)
+{
+    nvs_handle_t nvs_handle;
+    esp_err_t err = nvs_open(namespace, NVS_READWRITE, &nvs_handle);
+    if (err != ESP_OK)
+    {
+        goto save_to_namespace_end;
+    }
+    err = nvs_set_str(nvs_handle, key, value);
+    if (err != ESP_OK)
+    {
+        goto save_to_namespace_end;
+    }
+    err = nvs_commit(nvs_handle);
+    if (err != ESP_OK)
+    {
+        goto save_to_namespace_end;
+    }
+save_to_namespace_end:
+    nvs_close(nvs_handle);
+    return err;
+}
+
+esp_err_t load_from_namespace(char *namespace, char *key, char *value)
+{
+    nvs_handle_t nvs_handle;
+    esp_err_t err = nvs_open(namespace, NVS_READONLY, &nvs_handle);
+    if (err != ESP_OK)
+    {
+        goto load_from_namespace_end;
+    }
+    size_t str_len = 128;
+    err = nvs_get_str(nvs_handle, key, value, &str_len);
+    if (err != ESP_OK)
+    {
+        goto load_from_namespace_end;
+    }
+
+load_from_namespace_end:
+    nvs_close(nvs_handle);
+    return err;
+}

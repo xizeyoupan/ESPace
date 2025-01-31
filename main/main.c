@@ -7,20 +7,35 @@
 #include "freertos/task.h"
 #include "mdns.h"
 #include "nvs_flash.h"
-// #include <cstring>
+#include "user_config.h"
+#include "nvs_util.h"
+#include "peripherals/ws2812.h"
 
 #include "parameter.h"
 
 #include "tftest.h"
 #include "websocket_server.h"
 
-
-
 #include "wand_server_task.h"
 
+extern QueueHandle_t xWS2812Queue;
 MessageBufferHandle_t xMessageBufferToClient;
+user_config_t user_config;
 
 static const char *TAG = "MAIN";
+
+void load_config()
+{
+    char temp[128];
+    if (load_from_namespace(USER_CONFIG_NVS_NAMESPACE, USER_CONFIG_WS2812_IO_NUM_KEY, temp) == ESP_OK)
+    {
+        user_config.ws2812_gpio_num = atoi(temp);
+    }
+    else
+    {
+        user_config.ws2812_gpio_num = GPIO_NUM_22;
+    }
+}
 
 void app_main(void)
 {
@@ -34,10 +49,15 @@ void app_main(void)
         ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK(ret);
+    load_config();
+
+    xTaskCreate(&WS2812_ControllerTask, "WS2812_ControllerTask", 1024 * 5, NULL, 5, NULL);
+    vTaskDelay(pdMS_TO_TICKS(10));
+    uint32_t color = COLOR_YELLOW;
+    xQueueSend(xWS2812Queue, &color, portMAX_DELAY);
 
     // Start web server
     xTaskCreate(&wand_server_task, "SERVER", 1024 * 5, NULL, 5, NULL);
-
     // Initialize WiFi
     // start_wifi();
 

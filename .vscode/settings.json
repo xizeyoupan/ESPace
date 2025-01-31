@@ -98,6 +98,15 @@
         "efuse_hal.h": "c",
         "esp_clk.h": "c",
         "efuse_ll.h": "c",
-        "esp_clk_tree.h": "c"
+        "esp_clk_tree.h": "c",
+        "ws2812.h": "c",
+        "esp_wifi.h": "c",
+        "task.h": "c",
+        "parameter.h": "c",
+        "rmt_tx.h": "c",
+        "gpio.h": "c"
     },
+    "idf.port": "/dev/ttyUSB0",
+    "idf.espIdfPath": "/home/mio/esp/v5.2.3/esp-idf",
+    "idf.toolsPath": "/home/mio/.espressif",
 }
