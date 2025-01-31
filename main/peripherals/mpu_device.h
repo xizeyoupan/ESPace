@@ -1,5 +1,5 @@
-#ifndef __DEVICE_SERVICE_H__
-#define __DEVICE_SERVICE_H__
+#ifndef __MPU6500_H__
+#define __MPU6500_H__
 
 #include "user_config.h"
 
@@ -7,8 +7,7 @@
 extern "C"
 {
 #endif
-
-    char *get_device_info(void);
+    void mpu6050(void *pvParameters);
 
 #ifdef __cplusplus
 }

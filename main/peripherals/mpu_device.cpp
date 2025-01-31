@@ -1,26 +1,3 @@
-// I2C device class (I2Cdev) demonstration Arduino sketch for MPU6050 class using DMP (MotionApps v2.0)
-// 6/21/2012 by Jeff Rowberg <jeff@rowberg.net>
-// Updates should (hopefully) always be available at https://github.com/jrowberg/i2cdevlib
-//
-// Changelog:
-//		2023-03-10 - Fit to esp-idf v5
-//		2019-07-08 - Added Auto Calibration and offset generator
-//		   - and altered FIFO retrieval sequence to avoid using blocking code
-//		2016-04-18 - Eliminated a potential infinite loop
-//		2013-05-08 - added seamless Fastwire support
-//				   - added note about gyro calibration
-//		2012-06-21 - added note about Arduino 1.0.1 + Leonardo compatibility error
-//		2012-06-20 - improved FIFO overflow handling and simplified read process
-//		2012-06-19 - completely rearranged DMP initialization code and simplification
-//		2012-06-13 - pull gyro and accel data from FIFO packet instead of reading directly
-//		2012-06-09 - fix broken FIFO read sequence and change interrupt detection to RISING
-//		2012-06-05 - add gravity-compensated initial reference frame acceleration output
-//				   - add 3D math helper file to DMP6 example sketch
-//				   - add Euler output and Yaw/Pitch/Roll output formats
-//		2012-06-04 - remove accel offset clearing for better results (thanks Sungon Lee)
-//		2012-06-01 - fixed gyro sensitivity to be 2000 deg/sec instead of 250
-//		2012-05-30 - basic DMP initialization working
-
 /* ============================================
 I2Cdev device library code is placed under the MIT license
 Copyright (c) 2012 Jeff Rowberg
@@ -42,24 +19,13 @@ THE SOFTWARE.
 ===============================================
 */
 
-#include "math.h"
+#include "user_config.h"
 
-#include "cJSON.h"
-#include "driver/i2c.h"
-#include "esp_err.h"
-#include "esp_log.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/message_buffer.h"
-#include "freertos/queue.h"
-#include "freertos/task.h"
+float p_data[50][6];
+QueueHandle_t xQueueTrans, xQueuePdata;
+MessageBufferHandle_t xMessageBufferToClient;
 
-#include "parameter.h"
-
-extern float p_data[50][6];
-extern QueueHandle_t xQueueTrans, xQueuePdata;
-extern MessageBufferHandle_t xMessageBufferToClient;
-
-static const char* TAG = "IMU";
+static const char *TAG = "IMU";
 
 // I2Cdev and MPU6050 must be installed as libraries, or else the .cpp/.h files
 // for both classes must be in the include path of your project
@@ -74,10 +40,33 @@ static const char* TAG = "IMU";
 #define DEG_TO_RAD 0.0174533
 
 MPU6050 mpu;
+extern user_config_t user_config;
 
-
-void mpu6050(void* pvParameters)
+void start_i2c(void)
 {
+    i2c_config_t conf;
+    conf.mode = I2C_MODE_MASTER;
+    conf.sda_io_num = user_config.mpu_sda_gpio_num;
+    conf.scl_io_num = user_config.mpu_scl_gpio_num;
+    conf.sda_pullup_en = GPIO_PULLUP_ENABLE;
+    conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
+    conf.master.clk_speed = 400000;
+    conf.clk_flags = 0;
+    ESP_ERROR_CHECK(i2c_param_config(I2C_NUM_0, &conf));
+    ESP_ERROR_CHECK(i2c_driver_install(I2C_NUM_0, I2C_MODE_MASTER, 0, 0, 0));
+}
+
+extern "C" void mpu6050(void *pvParameters)
+{
+    start_i2c();
+
+    // Create Queue
+    xQueueTrans = xQueueCreate(10, sizeof(POSE_t));
+    configASSERT(xQueueTrans);
+
+    // Create Message Buffer
+    xMessageBufferToClient = xMessageBufferCreate(1024);
+    configASSERT(xMessageBufferToClient);
 
     // Initialize mpu6050
     mpu.initialize();
@@ -118,29 +107,22 @@ void mpu6050(void* pvParameters)
     int16_t ax, ay, az;
     int16_t gx, gy, gz;
 
-    gpio_config_t key_conf = {
-        .pin_bit_mask = (1ULL << 9),
-        .mode = GPIO_MODE_INPUT,
-        .pull_up_en = GPIO_PULLUP_ENABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE,
-    };
-    gpio_config(&key_conf);
-
     vTaskDelay(1000 / portTICK_PERIOD_MS);
 
     TickType_t xLastWakeTime = xTaskGetTickCount();
     uint16_t index = 0;
     uint8_t cnt = 0;
-    while (1) {
+    while (1)
+    {
         vTaskDelayUntil(&xLastWakeTime, 10 / portTICK_PERIOD_MS);
         int key_press = gpio_get_level(GPIO_NUM_9);
-        if (key_press) {
+        if (key_press)
+        {
             cnt = 0;
             continue;
         }
 
-        cJSON* request;
+        cJSON *request;
         request = cJSON_CreateObject();
         // cJSON_AddStringToObject(request, "id", "data-request");
         mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
@@ -160,17 +142,19 @@ void mpu6050(void* pvParameters)
         cJSON_AddNumberToObject(request, "gz", gz);
         cJSON_AddNumberToObject(request, "index", index);
         cJSON_AddNumberToObject(request, "cnt", cnt);
-        char* my_json_string = cJSON_Print(request);
+        char *my_json_string = cJSON_Print(request);
         // ESP_LOGI("", "%s", my_json_string);
         // printf("%s\n", my_json_string);
         cJSON_Delete(request);
         cJSON_free(my_json_string);
 
-        if (++cnt == 50) {
+        if (++cnt == 50)
+        {
             cnt = 0;
             index++;
 
-            if (xQueueSend(xQueuePdata, (void*)&p_data, 100) != pdPASS) {
+            if (xQueueSend(xQueuePdata, (void *)&p_data, 100) != pdPASS)
+            {
                 ESP_LOGE(pcTaskGetName(NULL), "xQueueSend fail");
             }
         }

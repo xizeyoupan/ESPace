@@ -56,10 +56,10 @@ load_wifi_config_end:
     return err;
 }
 
-esp_err_t save_to_namespace(char *namespace, char *key, char *value)
+esp_err_t save_to_namespace(char *user_namespace, char *key, char *value)
 {
     nvs_handle_t nvs_handle;
-    esp_err_t err = nvs_open(namespace, NVS_READWRITE, &nvs_handle);
+    esp_err_t err = nvs_open(user_namespace, NVS_READWRITE, &nvs_handle);
     if (err != ESP_OK)
     {
         goto save_to_namespace_end;
@@ -79,10 +79,10 @@ save_to_namespace_end:
     return err;
 }
 
-esp_err_t load_from_namespace(char *namespace, char *key, char *value)
+esp_err_t load_from_namespace(char *user_namespace, char *key, char *value)
 {
     nvs_handle_t nvs_handle;
-    esp_err_t err = nvs_open(namespace, NVS_READONLY, &nvs_handle);
+    esp_err_t err = nvs_open(user_namespace, NVS_READONLY, &nvs_handle);
     if (err != ESP_OK)
     {
         goto load_from_namespace_end;
@@ -97,4 +97,37 @@ esp_err_t load_from_namespace(char *namespace, char *key, char *value)
 load_from_namespace_end:
     nvs_close(nvs_handle);
     return err;
+}
+
+extern user_config_t user_config;
+
+void load_user_config()
+{
+    char temp[128];
+    if (load_from_namespace(USER_CONFIG_NVS_NAMESPACE, USER_CONFIG_WS2812_IO_NUM_KEY, temp) == ESP_OK)
+    {
+        user_config.ws2812_gpio_num = atoi(temp);
+    }
+    else
+    {
+        user_config.ws2812_gpio_num = GPIO_NUM_22;
+    }
+
+    if (load_from_namespace(USER_CONFIG_NVS_NAMESPACE, USER_CONFIG_MPU_SDA_IO_NUM_KEY, temp) == ESP_OK)
+    {
+        user_config.mpu_sda_gpio_num = atoi(temp);
+    }
+    else
+    {
+        user_config.mpu_sda_gpio_num = GPIO_NUM_10;
+    }
+
+    if (load_from_namespace(USER_CONFIG_NVS_NAMESPACE, USER_CONFIG_MPU_SCL_IO_NUM_KEY, temp) == ESP_OK)
+    {
+        user_config.mpu_scl_gpio_num = atoi(temp);
+    }
+    else
+    {
+        user_config.mpu_scl_gpio_num = GPIO_NUM_5;
+    }
 }

@@ -104,7 +104,16 @@
         "task.h": "c",
         "parameter.h": "c",
         "rmt_tx.h": "c",
-        "gpio.h": "c"
+        "gpio.h": "c",
+        "mpu_device.h": "c",
+        "nvs_flash.h": "c",
+        "mdns.h": "c",
+        "esp_log.h": "c",
+        "tftest.h": "c",
+        "esp_task_wdt.h": "c",
+        "mpu_device.hpp": "c",
+        "i2c.h": "c",
+        "esp_err.h": "c"
     },
     "idf.port": "/dev/ttyUSB0",
     "idf.espIdfPath": "/home/mio/esp/v5.2.3/esp-idf",

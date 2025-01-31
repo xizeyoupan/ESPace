@@ -4,11 +4,11 @@ idf_component_register(
     "nvs_util.c"
     "main.c"
     "wand_server_task.c"
-    "mpu6050.cpp"
     "tftest.cc"
     "./service/wifi_service.c"
     "./service/device_service.c"
     "./peripherals/ws2812.c"
+    "./peripherals/mpu_device.cpp"
     INCLUDE_DIRS
     "."
     "./service"
