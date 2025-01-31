@@ -28,6 +28,9 @@ void app_main(void)
     // Start web server
     xTaskCreate(&wand_server_task, "SERVER", 1024 * 5, NULL, 5, NULL);
 
+    // Start ws
+    xTaskCreate(&websocket_send_task, "WEBSOCKET", 1024 * 5, NULL, 5, NULL);
+
     // Start imu task
     xTaskCreate(&mpu6050, "IMU", 1024 * 8, NULL, 5, NULL);
 

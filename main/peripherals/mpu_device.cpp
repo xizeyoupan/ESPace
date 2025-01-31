@@ -35,23 +35,21 @@ https://invensense.tdk.com/wp-content/uploads/2015/02/MPU-6500-Register-Map2.pdf
 // Source: https://github.com/TKJElectronics/KalmanFilter
 #include "Kalman.h"
 
-float p_data[50][6];
-QueueHandle_t xQueueTrans, xQueuePdata;
-MessageBufferHandle_t xMessageBufferToClient;
-
 static const char *TAG = "IMU";
 #define RESTRICT_PITCH // Comment out to restrict roll to ±90deg instead
 #define RAD_TO_DEG (180.0 / M_PI)
 #define DEG_TO_RAD 0.0174533
 
+extern MessageBufferHandle_t xMessageBufferToClient;
 extern user_config_t user_config;
 MPU6050 mpu;
 Kalman kalmanX; // Create the Kalman instances
 Kalman kalmanY;
 
 // Accel & Gyro scale factor
-double accel_sensitivity = 16384.0;
-double gyro_sensitivity = 131.0;
+const double accel_sensitivity = 16384.0;
+const double gyro_sensitivity = 131.0;
+char data[50];
 
 // Get scaled value
 void _getMotion6(double *_ax, double *_ay, double *_az, double *_gx, double *_gy, double *_gz)
@@ -104,14 +102,6 @@ void start_i2c(void)
 extern "C" void mpu6050(void *pvParameters)
 {
     start_i2c();
-
-    // Create Queue
-    xQueueTrans = xQueueCreate(10, sizeof(POSE_t));
-    configASSERT(xQueueTrans);
-
-    // Create Message Buffer
-    xMessageBufferToClient = xMessageBufferCreate(1024);
-    configASSERT(xMessageBufferToClient);
 
     // Initialize mpu6050
     mpu.initialize();
@@ -175,7 +165,7 @@ extern "C" void mpu6050(void *pvParameters)
     while (1)
     {
         _getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
-        ESP_LOGI(TAG, "mpu data: %f %f %f - %f %f %f", ax, ay, az, gx, gy, gz);
+        // ESP_LOGI(TAG, "mpu data: %f %f %f - %f %f %f", ax, ay, az, gx, gy, gz);
         getRollPitch(ax, ay, az, &roll, &pitch);
 
         double dt = (double)(esp_timer_get_time() - timer) / 1000000; // Calculate delta time
@@ -235,93 +225,18 @@ extern "C" void mpu6050(void *pvParameters)
 			printf("\n");
 #endif
 
-        // Send UDP packet
         float _roll = kalAngleX - initial_kalAngleX;
         float _pitch = kalAngleY - initial_kalAngleY;
         ESP_LOGI(TAG, "roll:%f pitch=%f", _roll, _pitch);
 
-        POSE_t pose;
-        pose.roll = _roll;
-        pose.pitch = _pitch;
-        pose.yaw = 0.0;
-        // if (xQueueSend(xQueueTrans, &pose, 100) != pdPASS)
-        // {
-        //     ESP_LOGE(TAG, "xQueueSend fail");
-        // }
+        memset(data, 0, sizeof(data));
+        data[0] = WS_IMU_DATA_PREFIX;
+        memcpy(data + 1, (void *)&_roll, sizeof(_roll));
+        memcpy(data + 5, (void *)&_pitch, sizeof(_pitch));
+        xMessageBufferSend(xMessageBufferToClient, data, 9, pdMS_TO_TICKS(2));
 
-        // // Send WEB request
-        // cJSON *request;
-        // request = cJSON_CreateObject();
-        // cJSON_AddStringToObject(request, "id", "data-request");
-        // cJSON_AddNumberToObject(request, "roll", _roll);
-        // cJSON_AddNumberToObject(request, "pitch", _pitch);
-        // cJSON_AddNumberToObject(request, "yaw", 0.0);
-        // char *my_json_string = cJSON_Print(request);
-        // ESP_LOGD(TAG, "my_json_string\n%s", my_json_string);
-        // size_t xBytesSent = xMessageBufferSend(xMessageBufferToClient, my_json_string, strlen(my_json_string), 100);
-        // if (xBytesSent != strlen(my_json_string))
-        // {
-        //     ESP_LOGE(TAG, "xMessageBufferSend fail");
-        // }
-        // cJSON_Delete(request);
-        // cJSON_free(my_json_string);
-
-        vTaskDelay(pdMS_TO_TICKS(10));
+        vTaskDelay(pdMS_TO_TICKS(125));
     } // end while
-
-    // int16_t ax, ay, az;
-    // int16_t gx, gy, gz;
-
-    // TickType_t xLastWakeTime = xTaskGetTickCount();
-    // uint16_t index = 0;
-    // uint8_t cnt = 0;
-    // while (1)
-    // {
-    //     vTaskDelayUntil(&xLastWakeTime, 10 / portTICK_PERIOD_MS);
-    //     int key_press = gpio_get_level(GPIO_NUM_9);
-    //     if (key_press)
-    //     {
-    //         cnt = 0;
-    //         continue;
-    //     }
-
-    //     cJSON *request;
-    //     request = cJSON_CreateObject();
-    //     // cJSON_AddStringToObject(request, "id", "data-request");
-    //     mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
-
-    //     p_data[cnt][0] = ax;
-    //     p_data[cnt][1] = ay;
-    //     p_data[cnt][2] = az;
-    //     p_data[cnt][3] = gx;
-    //     p_data[cnt][4] = gy;
-    //     p_data[cnt][5] = gz;
-
-    //     cJSON_AddNumberToObject(request, "ax", ax);
-    //     cJSON_AddNumberToObject(request, "ay", ay);
-    //     cJSON_AddNumberToObject(request, "az", az);
-    //     cJSON_AddNumberToObject(request, "gx", gx);
-    //     cJSON_AddNumberToObject(request, "gy", gy);
-    //     cJSON_AddNumberToObject(request, "gz", gz);
-    //     cJSON_AddNumberToObject(request, "index", index);
-    //     cJSON_AddNumberToObject(request, "cnt", cnt);
-    //     char *my_json_string = cJSON_Print(request);
-    //     // ESP_LOGI("", "%s", my_json_string);
-    //     // printf("%s\n", my_json_string);
-    //     cJSON_Delete(request);
-    //     cJSON_free(my_json_string);
-
-    //     if (++cnt == 50)
-    //     {
-    //         cnt = 0;
-    //         index++;
-
-    //         if (xQueueSend(xQueuePdata, (void *)&p_data, 100) != pdPASS)
-    //         {
-    //             ESP_LOGE(pcTaskGetName(NULL), "xQueueSend fail");
-    //         }
-    //     }
-    // }
 
     // Never reach here
     vTaskDelete(NULL);
