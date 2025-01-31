@@ -40,7 +40,6 @@
 #include "http_controller.h"
 #include "wand_server_task.h"
 
-#include "parameter.h"
 #include "tftest.h"
 
 typedef enum

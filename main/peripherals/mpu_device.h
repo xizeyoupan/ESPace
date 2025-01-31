@@ -3,6 +3,17 @@
 
 #include "user_config.h"
 
+typedef struct
+{
+    float quatx;
+    float quaty;
+    float quatz;
+    float quatw;
+    float roll;
+    float pitch;
+    float yaw;
+} POSE_t;
+
 #ifdef __cplusplus
 extern "C"
 {

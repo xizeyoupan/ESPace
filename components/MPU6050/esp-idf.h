@@ -11,7 +11,7 @@
 //#define PI 3.14159265358979323846
 
 // Arduino compatible macros
-#define delayMicroseconds(us) esp_rom_delay_us(us)
+// #define delayMicroseconds(us) esp_rom_delay_us(us)
 #define delay(ms) esp_rom_delay_us(ms*1000)
 #define micros() (unsigned long) (esp_timer_get_time())
 #define map(x, in_min, in_max, out_min, out_max) (long) ((x - in_min) * (out_max - out_min + 1) / (in_max - in_min + 1) + out_min)
