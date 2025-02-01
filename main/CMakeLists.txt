@@ -5,6 +5,7 @@ idf_component_register(
     "main.c"
     "wand_server_task.c"
     "tftest.cc"
+    "play_mp3.c"
     "./service/wifi_service.c"
     "./service/device_service.c"
     "./peripherals/ws2812.c"

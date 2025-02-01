@@ -112,7 +112,10 @@
         "esp_task_wdt.h": "c",
         "mpu_device.hpp": "c",
         "i2c.h": "c",
-        "esp_err.h": "c"
+        "esp_err.h": "c",
+        "semphr.h": "c",
+        "esp_netif.h": "c",
+        "board.h": "c"
     },
     "idf.port": "/dev/ttyUSB0",
     "idf.espIdfPath": "/home/mio/esp/v5.2.3/esp-idf",

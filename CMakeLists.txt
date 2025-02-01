@@ -25,5 +25,6 @@ add_definitions(-DGIT_COMMIT_SHA1="${GIT_COMMIT}")
 
 set(EXTRA_COMPONENT_DIRS ./components/)
 
+include($ENV{ADF_PATH}/CMakeLists.txt)
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(magic-wand)

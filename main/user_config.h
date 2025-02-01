@@ -39,6 +39,7 @@
 #include "nvs_util.h"
 #include "http_controller.h"
 #include "wand_server_task.h"
+#include "play_mp3.h"
 
 #include "tftest.h"
 
