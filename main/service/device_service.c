@@ -18,7 +18,7 @@ char* get_device_info(void)
     cJSON_AddItemToObject(data, "compile_time", compile_time);
 
     cJSON* git_commit_id = NULL;
-    git_commit_id = cJSON_CreateString(GIT_COMMIT_SHA1);
+    git_commit_id = cJSON_CreateString("GIT_COMMIT_SHA1");
     if (git_commit_id == NULL) {
         goto get_device_info_end;
     }
@@ -74,3 +74,4 @@ get_device_info_end:
     cJSON_Delete(data);
     return string;
 }
+

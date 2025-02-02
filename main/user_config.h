@@ -35,12 +35,12 @@
 #include "service/device_service.h"
 #include "service/wifi_service.h"
 
+#include "task/http_controller.h"
+#include "task/wand_server_task.h"
+#include "task/play_mp3.h"
+
 #include "nvs_flash.h"
 #include "nvs_util.h"
-#include "http_controller.h"
-#include "wand_server_task.h"
-#include "play_mp3.h"
-
 #include "tftest.h"
 
 typedef enum

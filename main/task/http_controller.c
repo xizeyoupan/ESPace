@@ -129,7 +129,7 @@ esp_err_t ws_send_data(char *data, uint16_t data_size)
     ws_pkt.len = data_size;
     ws_pkt.type = HTTPD_WS_TYPE_BINARY;
 
-    ESP_LOGI(TAG, "data len:%d", ws_pkt.len);
+    // ESP_LOGI(TAG, "data len:%d", ws_pkt.len);
 
     httpd_ws_send_frame_async(server, fd, &ws_pkt);
     return ESP_OK;
@@ -139,7 +139,7 @@ MessageBufferHandle_t xMessageBufferToClient;
 void websocket_send_task(void *pvParameters)
 {
     // Create Message Buffer
-    xMessageBufferToClient = xMessageBufferCreate(1024);
+    xMessageBufferToClient = xMessageBufferCreate(1024 * 10);
     configASSERT(xMessageBufferToClient);
 
     while (1)

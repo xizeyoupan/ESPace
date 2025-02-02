@@ -1,11 +1,11 @@
 idf_component_register(
     SRCS
-    "http_controller.c"
+    "tftest.cc"
     "nvs_util.c"
     "main.c"
-    "wand_server_task.c"
-    "tftest.cc"
-    "play_mp3.c"
+    "./task/wand_server_task.c"
+    "./task/http_controller.c"
+    "./task/play_mp3.c"
     "./service/wifi_service.c"
     "./service/device_service.c"
     "./peripherals/ws2812.c"
@@ -14,4 +14,5 @@ idf_component_register(
     "."
     "./service"
     "./peripherals"
+    "./task"
 )

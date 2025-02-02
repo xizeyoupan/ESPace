@@ -34,7 +34,7 @@ void app_main(void)
     // Start imu task
     xTaskCreate(&mpu6050, "IMU", 1024 * 8, NULL, 5, NULL);
 
-    xTaskCreate(&play_mp3_task, "MP3", 1024 * 10, NULL, 5, NULL);
+    // xTaskCreate(&play_mp3_task, "MP3", 1024 * 10, NULL, 5, NULL);
 
     // xTaskCreate(&start_test, "tesst", 1024 * 20, NULL, 5, NULL);
 }

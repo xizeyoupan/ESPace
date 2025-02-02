@@ -227,7 +227,7 @@ extern "C" void mpu6050(void *pvParameters)
 
         float _roll = kalAngleX - initial_kalAngleX;
         float _pitch = kalAngleY - initial_kalAngleY;
-        ESP_LOGI(TAG, "roll:%f pitch=%f", _roll, _pitch);
+        // ESP_LOGI(TAG, "roll:%f pitch=%f", _roll, _pitch);
 
         memset(data, 0, sizeof(data));
         data[0] = WS_IMU_DATA_PREFIX;
