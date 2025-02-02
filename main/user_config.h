@@ -10,6 +10,7 @@
 #include "esp_clk_tree.h"
 #include "esp_event.h"
 #include "esp_err.h"
+#include "esp_heap_caps.h"
 #include "esp_http_server.h"
 #include "esp_log.h"
 #include "esp_system.h"
@@ -38,6 +39,7 @@
 #include "task/http_controller.h"
 #include "task/wand_server_task.h"
 #include "task/play_mp3.h"
+#include "task/status_task.h"
 
 #include "nvs_flash.h"
 #include "nvs_util.h"

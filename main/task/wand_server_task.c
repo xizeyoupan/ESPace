@@ -170,6 +170,9 @@ static void start_mdns(void)
 
 void wand_server_task(void *pvParameters)
 {
+    BaseType_t core_id = xPortGetCoreID(); // 返回当前任务所在的核心 ID
+    ESP_LOGI(TAG, "Task is running on core %d.", core_id);
+
     start_wifi();
     start_mdns();
     while (1)

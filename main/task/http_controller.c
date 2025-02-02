@@ -136,20 +136,23 @@ esp_err_t ws_send_data(char *data, uint16_t data_size)
 }
 
 MessageBufferHandle_t xMessageBufferToClient;
+char ws_buffer[1024];
 void websocket_send_task(void *pvParameters)
 {
+    BaseType_t core_id = xPortGetCoreID(); // 返回当前任务所在的核心 ID
+    ESP_LOGI(TAG, "Task is running on core %d.", core_id);
+
     // Create Message Buffer
     xMessageBufferToClient = xMessageBufferCreate(1024 * 10);
     configASSERT(xMessageBufferToClient);
 
     while (1)
     {
-        char buffer[50];
-        size_t msgSize = xMessageBufferReceive(xMessageBufferToClient, buffer, sizeof(buffer), portMAX_DELAY); // 读取完整消息
+        size_t msgSize = xMessageBufferReceive(xMessageBufferToClient, ws_buffer, sizeof(ws_buffer), portMAX_DELAY); // 读取完整消息
 
         if (server)
         {
-            ws_send_data(buffer, msgSize);
+            ws_send_data(ws_buffer, msgSize);
         }
         else
         {

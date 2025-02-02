@@ -46,6 +46,9 @@ void ws2812_send_pixel(rmt_channel_handle_t *channel, uint32_t color)
 
 void WS2812_ControllerTask(void *pvParameters)
 {
+    BaseType_t core_id = xPortGetCoreID(); // 返回当前任务所在的核心 ID
+    ESP_LOGI(TAG, "Task is running on core %d.", core_id);
+
     xWS2812Queue = xQueueCreate(5, sizeof(uint32_t));
     if (xWS2812Queue == NULL)
     {

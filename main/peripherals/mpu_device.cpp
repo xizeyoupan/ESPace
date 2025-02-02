@@ -101,6 +101,9 @@ void start_i2c(void)
 
 extern "C" void mpu6050(void *pvParameters)
 {
+    BaseType_t core_id = xPortGetCoreID(); // 返回当前任务所在的核心 ID
+    ESP_LOGI(TAG, "Task is running on core %d.", core_id);
+
     start_i2c();
 
     // Initialize mpu6050
@@ -233,7 +236,7 @@ extern "C" void mpu6050(void *pvParameters)
         data[0] = WS_IMU_DATA_PREFIX;
         memcpy(data + 1, (void *)&_roll, sizeof(_roll));
         memcpy(data + 5, (void *)&_pitch, sizeof(_pitch));
-        xMessageBufferSend(xMessageBufferToClient, data, 9, pdMS_TO_TICKS(2));
+        xMessageBufferSend(xMessageBufferToClient, data, 9, 0);
 
         vTaskDelay(pdMS_TO_TICKS(125));
     } // end while

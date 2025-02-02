@@ -4,6 +4,7 @@
 #include "user_config.h"
 
 #define WS_IMU_DATA_PREFIX 1
+#define STAT_DATA_PREFIX 2
 
 #ifdef __cplusplus
 extern "C"
