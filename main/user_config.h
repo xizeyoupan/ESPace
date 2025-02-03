@@ -59,20 +59,20 @@ typedef enum
 
 #define SW_VERSION "v0.0.1"
 #define USER_CONFIG_NVS_NAMESPACE "user_config"
-#define USER_CONFIG_WS2812_IO_NUM_KEY "ws2812_io_num"
-#define USER_CONFIG_MPU_SDA_IO_NUM_KEY "mpu_sda_io_num"
-#define USER_CONFIG_MPU_SCL_IO_NUM_KEY "mpu_scl_io_num"
+#define USER_CONFIG_NVS_KEY "config_data"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
+    #pragma pack(1)
     typedef struct
     {
         gpio_num_t ws2812_gpio_num;
         gpio_num_t mpu_sda_gpio_num;
         gpio_num_t mpu_scl_gpio_num;
+        uint8_t enable_imu;
     } user_config_t;
 
 #ifdef __cplusplus

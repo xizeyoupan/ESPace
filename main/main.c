@@ -26,7 +26,7 @@ void app_main(void)
     xQueueSend(xWS2812Queue, &color, portMAX_DELAY);
 
     // Start wifi and web server
-    xTaskCreatePinnedToCore(&wand_server_task, "WIFI", 1024 * 5, NULL, 15, NULL, 0);
+    xTaskCreatePinnedToCore(&wand_server_task, "WIFI_LOOP", 1024 * 5, NULL, 15, NULL, 0);
 
     // Start ws
     xTaskCreatePinnedToCore(&websocket_send_task, "WS", 1024 * 5, NULL, 10, NULL, 0);

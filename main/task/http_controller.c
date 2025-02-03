@@ -5,7 +5,8 @@ static const char *TAG = "HTTP_CONTROLLER";
 #define MAX_PAYLOAD_LEN 128
 uint8_t ws_buf[MAX_PAYLOAD_LEN] = {0};
 httpd_handle_t server = NULL;
-int fd;
+int fd = -1;
+extern user_config_t user_config;
 
 static esp_err_t get_whoami_handler(httpd_req_t *req)
 {
@@ -43,7 +44,7 @@ static esp_err_t wifi_config_post_handler(httpd_req_t *req)
     save_wifi_config(wifi_ssid, wifi_pass);
 
     httpd_resp_send(req, "Configuration received. Rebooting...", HTTPD_RESP_USE_STRLEN);
-    vTaskDelay(pdMS_TO_TICKS(2000));
+    vTaskDelay(pdMS_TO_TICKS(1000));
     start_sta_mode();
     return ESP_OK;
 }
@@ -84,6 +85,7 @@ static esp_err_t wifi_info_get_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
+char once_ws_buffer[1024];
 esp_err_t websocket_handler(httpd_req_t *req)
 {
     if (req->method == HTTP_GET)
@@ -103,14 +105,15 @@ esp_err_t websocket_handler(httpd_req_t *req)
     ws_pkt.payload[ws_pkt.len] = 0;
     ESP_LOGI(TAG, "Received: %s, size: %d", ws_pkt.payload, ws_pkt.len);
 
-    if (strcmp((char *)ws_pkt.payload, "whoami") == 0)
+    if (strcmp((char *)ws_pkt.payload, "0") == 0)
     {
-        const char *resp_str = "0721esp32wand";
-        strcpy((char *)ws_pkt.payload, resp_str);
-        ws_pkt.len = strlen(resp_str);
+        once_ws_buffer[0] = USER_CONFIG_DATA_PREFIX;
+        memcpy(once_ws_buffer + 1, &user_config, sizeof(user_config));
+        memcpy(ws_pkt.payload, once_ws_buffer, 1 + sizeof(user_config));
+        ws_pkt.len = 1 + sizeof(user_config);
     }
 
-    ws_pkt.type = HTTPD_WS_TYPE_TEXT;
+    ws_pkt.type = HTTPD_WS_TYPE_BINARY;
     httpd_ws_send_frame(req, &ws_pkt);
 
     return ESP_OK;
@@ -150,13 +153,13 @@ void websocket_send_task(void *pvParameters)
     {
         size_t msgSize = xMessageBufferReceive(xMessageBufferToClient, ws_buffer, sizeof(ws_buffer), portMAX_DELAY); // 读取完整消息
 
-        if (server)
+        if (server && fd != -1)
         {
             ws_send_data(ws_buffer, msgSize);
         }
         else
         {
-            ESP_LOGW(TAG, "server is null");
+            // ESP_LOGW(TAG, "server is null");
         }
     }
 }

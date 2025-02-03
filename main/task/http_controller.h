@@ -3,6 +3,7 @@
 
 #include "user_config.h"
 
+#define USER_CONFIG_DATA_PREFIX 0
 #define WS_IMU_DATA_PREFIX 1
 #define STAT_DATA_PREFIX 2
 
