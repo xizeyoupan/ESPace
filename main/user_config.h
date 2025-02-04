@@ -66,13 +66,14 @@ extern "C"
 {
 #endif
 
-    #pragma pack(1)
+#pragma pack(1)
     typedef struct
     {
         gpio_num_t ws2812_gpio_num;
         gpio_num_t mpu_sda_gpio_num;
         gpio_num_t mpu_scl_gpio_num;
         uint8_t enable_imu;
+        uint8_t enable_imu_det;
     } user_config_t;
 
 #ifdef __cplusplus

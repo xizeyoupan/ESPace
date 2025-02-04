@@ -116,6 +116,7 @@ void load_user_config()
     user_config.mpu_sda_gpio_num = GPIO_NUM_10;
     user_config.mpu_scl_gpio_num = GPIO_NUM_5;
     user_config.enable_imu = 1;
+    user_config.enable_imu_det = 1;
     // }
 
     ESP_LOGI(TAG, "WS2812 GPIO: %d", user_config.ws2812_gpio_num);
