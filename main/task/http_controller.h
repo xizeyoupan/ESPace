@@ -3,9 +3,14 @@
 
 #include "user_config.h"
 
-#define USER_CONFIG_DATA_PREFIX 0
-#define WS_IMU_DATA_PREFIX 1
-#define STAT_DATA_PREFIX 2
+#define SEND_USER_CONFIG_DATA_PREFIX 0
+#define SEND_WS_IMU_DATA_PREFIX 1
+#define SEND_STAT_DATA_PREFIX 2
+#define SEND_LOG_DATA_PREFIX 3
+
+#define FETCHED_GET_CONFIG 0
+#define FETCHED_SET_CONFIG 1
+#define FETCHED_RESET_CONFIG 2
 
 #ifdef __cplusplus
 extern "C"

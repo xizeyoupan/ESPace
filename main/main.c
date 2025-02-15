@@ -4,6 +4,24 @@ user_config_t user_config;
 
 static const char *TAG = "MAIN";
 
+#define LOG_BUFFER_LEN (1023)
+extern MessageBufferHandle_t xMessageBufferToClient;
+
+char log_buffer[LOG_BUFFER_LEN + 1];
+int ws_vprintf(const char *_Format, va_list _ArgList)
+{
+    log_buffer[0] = SEND_LOG_DATA_PREFIX;
+    size_t len = vsnprintf(log_buffer + 1, LOG_BUFFER_LEN, _Format, _ArgList);
+    if (len > LOG_BUFFER_LEN - 1)
+    {
+        log_buffer[LOG_BUFFER_LEN] = 0;
+    }
+
+    xMessageBufferSend(xMessageBufferToClient, log_buffer, len, 0);
+    vprintf(_Format, _ArgList);
+    return len;
+}
+
 void app_main(void)
 {
 
@@ -34,6 +52,10 @@ void app_main(void)
     // Start imu task
     xTaskCreatePinnedToCore(&mpu6050, "IMU", 1024 * 8, NULL, 9, NULL, 1);
     xTaskCreatePinnedToCore(&status_task, "STAT", 1024 * 5, NULL, 4, NULL, 1);
+
+    vTaskDelay(pdMS_TO_TICKS(1000));
+    configASSERT(xMessageBufferToClient);
+    esp_log_set_vprintf(ws_vprintf);
 
     // xTaskCreate(&play_mp3_task, "MP3", 1024 * 10, NULL, 5, NULL);
 

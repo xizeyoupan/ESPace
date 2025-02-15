@@ -233,7 +233,7 @@ extern "C" void mpu6050(void *pvParameters)
         // ESP_LOGI(TAG, "roll:%f pitch=%f", _roll, _pitch);
 
         memset(data, 0, sizeof(data));
-        data[0] = WS_IMU_DATA_PREFIX;
+        data[0] = SEND_WS_IMU_DATA_PREFIX;
         memcpy(data + 1, (void *)&_roll, sizeof(_roll));
         memcpy(data + 5, (void *)&_pitch, sizeof(_pitch));
         xMessageBufferSend(xMessageBufferToClient, data, 9, 0);

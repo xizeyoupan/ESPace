@@ -4,7 +4,7 @@
 static const char *TAG = "STAT";
 
 /*
-1 byte: STAT_DATA_PREFIX
+1 byte: SEND_STAT_DATA_PREFIX
 1 bytes: task_count
 
 1 byte: task_name_length
@@ -28,7 +28,7 @@ void ws_send_task_state(void)
     uint8_t task_count = uxTaskGetNumberOfTasks(); // 获取当前任务数量
     TaskStatus_t *task_status_array = malloc(sizeof(TaskStatus_t) * task_count);
     uint16_t data_index = 0;
-    stat_data[data_index++] = STAT_DATA_PREFIX;
+    stat_data[data_index++] = SEND_STAT_DATA_PREFIX;
 
     if (task_status_array != NULL)
     {

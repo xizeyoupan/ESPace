@@ -12,6 +12,7 @@ extern "C"
     esp_err_t load_wifi_config(char *wifi_ssid, char *wifi_pass);
     void load_user_config();
     void save_user_config();
+    void reset_user_config();
 
 #ifdef __cplusplus
 }

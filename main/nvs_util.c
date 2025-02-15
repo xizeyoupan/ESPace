@@ -102,27 +102,31 @@ load_from_namespace_end:
 
 extern user_config_t user_config;
 
-void load_user_config()
+void reset_user_config()
 {
-
-    // if (load_from_namespace(USER_CONFIG_NVS_NAMESPACE, USER_CONFIG_NVS_KEY, &user_config, sizeof(user_config)) == ESP_OK)
-    // {
-    //     ESP_LOGI(TAG, "Loaded user config from NVS");
-    // }
-    // else
-    // {
-    ESP_LOGW(TAG, "Failed to load user config from NVS, using default values");
+    ESP_LOGI(TAG, "Reset user config from NVS");
     user_config.ws2812_gpio_num = GPIO_NUM_22;
     user_config.mpu_sda_gpio_num = GPIO_NUM_10;
     user_config.mpu_scl_gpio_num = GPIO_NUM_5;
-    user_config.enable_imu = 1;
     user_config.enable_imu_det = 1;
-    // }
+}
+
+void load_user_config()
+{
+    if (load_from_namespace(USER_CONFIG_NVS_NAMESPACE, USER_CONFIG_NVS_KEY, &user_config, sizeof(user_config)) == ESP_OK)
+    {
+        ESP_LOGI(TAG, "Loaded user config from NVS");
+    }
+    else
+    {
+        ESP_LOGW(TAG, "Failed to load user config from NVS, using default values");
+        reset_user_config();
+    }
 
     ESP_LOGI(TAG, "WS2812 GPIO: %d", user_config.ws2812_gpio_num);
     ESP_LOGI(TAG, "MPU SDA GPIO: %d", user_config.mpu_sda_gpio_num);
     ESP_LOGI(TAG, "MPU SCL GPIO: %d", user_config.mpu_scl_gpio_num);
-    ESP_LOGI(TAG, "Enable IMU: %d", user_config.enable_imu);
+    ESP_LOGI(TAG, "Enable IMU: %d", user_config.enable_imu_det);
 }
 
 void save_user_config()

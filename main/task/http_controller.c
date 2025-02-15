@@ -103,22 +103,34 @@ esp_err_t websocket_handler(httpd_req_t *req)
     ws_pkt.payload = ws_buf;
     httpd_ws_recv_frame(req, &ws_pkt, MAX_PAYLOAD_LEN);
     ws_pkt.payload[ws_pkt.len] = 0;
-    ESP_LOGI(TAG, "Received: %s, size: %d", ws_pkt.payload, ws_pkt.len);
+    ESP_LOGI(TAG, "ws size: %d, data[0]: %d", ws_pkt.len, ws_pkt.payload[0]);
 
-    if (ws_pkt.payload[0] == 0)
-    { // get config
-        once_ws_buffer[0] = USER_CONFIG_DATA_PREFIX;
-        memcpy(once_ws_buffer + 1, &user_config, sizeof(user_config));
-        memcpy(ws_pkt.payload, once_ws_buffer, 1 + sizeof(user_config));
-        ws_pkt.len = 1 + sizeof(user_config);
-    }
-    else if (ws_pkt.payload[0] == 1)
-    { // set config
+    switch (ws_pkt.payload[0])
+    {
+    case FETCHED_SET_CONFIG:
         memcpy(&user_config, ws_pkt.payload + 1, sizeof(user_config));
-        once_ws_buffer[0] = USER_CONFIG_DATA_PREFIX;
+        save_user_config();
+        once_ws_buffer[0] = SEND_USER_CONFIG_DATA_PREFIX;
         memcpy(once_ws_buffer + 1, &user_config, sizeof(user_config));
         memcpy(ws_pkt.payload, once_ws_buffer, 1 + sizeof(user_config));
         ws_pkt.len = 1 + sizeof(user_config);
+        break;
+    case FETCHED_RESET_CONFIG:
+        reset_user_config();
+        once_ws_buffer[0] = SEND_USER_CONFIG_DATA_PREFIX;
+        memcpy(once_ws_buffer + 1, &user_config, sizeof(user_config));
+        memcpy(ws_pkt.payload, once_ws_buffer, 1 + sizeof(user_config));
+        ws_pkt.len = 1 + sizeof(user_config);
+        break;
+    case FETCHED_GET_CONFIG:
+        once_ws_buffer[0] = SEND_USER_CONFIG_DATA_PREFIX;
+        memcpy(once_ws_buffer + 1, &user_config, sizeof(user_config));
+        memcpy(ws_pkt.payload, once_ws_buffer, 1 + sizeof(user_config));
+        ws_pkt.len = 1 + sizeof(user_config);
+        break;
+
+    default:
+        break;
     }
 
     ws_pkt.type = HTTPD_WS_TYPE_BINARY;
