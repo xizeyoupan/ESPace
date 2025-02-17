@@ -261,7 +261,6 @@ extern "C" void mpu6050(void *pvParameters)
         xSemaphoreTake(imu_mutex, portMAX_DELAY);
         _getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
         // ESP_LOGI(TAG, "mpu data: %f %f %f - %f %f %f", ax, ay, az, gx, gy, gz);
-        get_angle();
 
         float ax_f = ax;
         float ay_f = ay;
@@ -271,10 +270,6 @@ extern "C" void mpu6050(void *pvParameters)
         float gz_f = gz;
 
         memset(data, 0, sizeof(data));
-        data[0] = SEND_WS_IMU_DATA_PREFIX;
-        memcpy(data + 1, (void *)&_roll, sizeof(_roll));
-        memcpy(data + 5, (void *)&_pitch, sizeof(_pitch));
-
         memcpy(data + 9, (void *)&ax_f, sizeof(ax_f));
         memcpy(data + 13, (void *)&ay_f, sizeof(ay_f));
         memcpy(data + 17, (void *)&az_f, sizeof(az_f));
@@ -282,7 +277,15 @@ extern "C" void mpu6050(void *pvParameters)
         memcpy(data + 25, (void *)&gy_f, sizeof(gy_f));
         memcpy(data + 29, (void *)&gz_f, sizeof(gz_f));
 
-        xMessageBufferSend(xMessageBufferToClient, data, 33, 0);
+        if (user_config.enable_imu_det)
+        {
+            data[0] = SEND_WS_IMU_DATA_PREFIX;
+            get_angle();
+            memcpy(data + 1, (void *)&_roll, sizeof(_roll));
+            memcpy(data + 5, (void *)&_pitch, sizeof(_pitch));
+            xMessageBufferSend(xMessageBufferToClient, data, 33, 0);
+        }
+
         xSemaphoreGive(imu_mutex);
 
         vTaskDelay(pdMS_TO_TICKS(125));

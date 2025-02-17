@@ -53,7 +53,10 @@ void app_main(void)
 
     // Start imu task
     xTaskCreatePinnedToCore(&mpu6050, "IMU", 1024 * 8, NULL, 9, NULL, 1);
+
     xTaskCreatePinnedToCore(&status_task, "STAT", 1024 * 5, NULL, 4, NULL, 1);
+
+    xTaskCreatePinnedToCore(&scan_button_task, "BUTTON", 1024 * 5, NULL, 5, NULL, 1);
 
     vTaskDelay(pdMS_TO_TICKS(1000));
     configASSERT(xMessageBufferToClient);

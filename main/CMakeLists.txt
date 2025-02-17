@@ -7,6 +7,7 @@ idf_component_register(
     "./task/http_controller.c"
     "./task/play_mp3.c"
     "./task/status_task.c"
+    "./task/button.c"
     "./service/wifi_service.c"
     "./service/device_service.c"
     "./peripherals/ws2812.c"

@@ -6,6 +6,7 @@
 
 #include "cJSON.h"
 #include "mdns.h"
+#include "multi_button.h"
 
 #include "esp_clk_tree.h"
 #include "esp_event.h"
@@ -41,6 +42,7 @@
 #include "task/wand_server_task.h"
 #include "task/play_mp3.h"
 #include "task/status_task.h"
+#include "task/button.h"
 
 #include "nvs_flash.h"
 #include "nvs_util.h"

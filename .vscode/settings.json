@@ -119,7 +119,11 @@
         "play_mp3.h": "c",
         "math.h": "c",
         "status_task.h": "c",
-        "esp_heap_caps.h": "c"
+        "esp_heap_caps.h": "c",
+        "button.h": "c",
+        "multi_button.h": "c",
+        "message_buffer.h": "c",
+        "stdint.h": "c"
     },
     "idf.port": "/dev/ttyUSB0",
     "idf.espIdfPath": "/home/mio/esp/v5.2.3/esp-idf",
