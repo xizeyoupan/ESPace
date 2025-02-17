@@ -109,6 +109,7 @@ void reset_user_config()
     user_config.mpu_sda_gpio_num = GPIO_NUM_10;
     user_config.mpu_scl_gpio_num = GPIO_NUM_5;
     user_config.enable_imu_det = 1;
+    user_config.enable_ws_log = 0;
 }
 
 void load_user_config()
@@ -127,6 +128,7 @@ void load_user_config()
     ESP_LOGI(TAG, "MPU SDA GPIO: %d", user_config.mpu_sda_gpio_num);
     ESP_LOGI(TAG, "MPU SCL GPIO: %d", user_config.mpu_scl_gpio_num);
     ESP_LOGI(TAG, "Enable IMU: %d", user_config.enable_imu_det);
+    ESP_LOGI(TAG, "Enable WS LOG: %d", user_config.enable_ws_log);
 }
 
 void save_user_config()

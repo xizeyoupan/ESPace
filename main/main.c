@@ -10,16 +10,18 @@ extern MessageBufferHandle_t xMessageBufferToClient;
 char log_buffer[LOG_BUFFER_LEN + 1];
 int ws_vprintf(const char *_Format, va_list _ArgList)
 {
-    log_buffer[0] = SEND_LOG_DATA_PREFIX;
-    size_t len = vsnprintf(log_buffer + 1, LOG_BUFFER_LEN, _Format, _ArgList);
-    if (len > LOG_BUFFER_LEN - 1)
+    if (user_config.enable_ws_log)
     {
-        log_buffer[LOG_BUFFER_LEN] = 0;
+        log_buffer[0] = SEND_LOG_DATA_PREFIX;
+        size_t len = vsnprintf(log_buffer + 1, LOG_BUFFER_LEN, _Format, _ArgList);
+        if (len > LOG_BUFFER_LEN - 1)
+        {
+            log_buffer[LOG_BUFFER_LEN] = 0;
+        }
+        xMessageBufferSend(xMessageBufferToClient, log_buffer, len, 0);
     }
 
-    xMessageBufferSend(xMessageBufferToClient, log_buffer, len, 0);
-    vprintf(_Format, _ArgList);
-    return len;
+    return vprintf(_Format, _ArgList);
 }
 
 void app_main(void)

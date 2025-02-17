@@ -45,6 +45,7 @@ extern user_config_t user_config;
 MPU6050 mpu;
 Kalman kalmanX; // Create the Kalman instances
 Kalman kalmanY;
+SemaphoreHandle_t imu_mutex;
 
 // Accel & Gyro scale factor
 const double accel_sensitivity = 16384.0;
@@ -85,8 +86,21 @@ void getRollPitch(double accX, double accY, double accZ, double *roll, double *p
 #endif
 }
 
+// Set Kalman and gyro starting angle
+double ax, ay, az;
+double gx, gy, gz;
+double roll, pitch;          // Roll and pitch are calculated using the accelerometer
+double kalAngleX, kalAngleY; // Calculated angle using a Kalman filter
+
+int64_t timer;
+
+int8_t initialized = 0;
+double initial_kalAngleX = 0.0;
+double initial_kalAngleY = 0.0;
+
 void start_i2c(void)
 {
+    i2c_driver_delete(I2C_NUM_0);
     i2c_config_t conf;
     conf.mode = I2C_MODE_MASTER;
     conf.sda_io_num = user_config.mpu_sda_gpio_num;
@@ -99,10 +113,9 @@ void start_i2c(void)
     ESP_ERROR_CHECK(i2c_driver_install(I2C_NUM_0, I2C_MODE_MASTER, 0, 0, 0));
 }
 
-extern "C" void mpu6050(void *pvParameters)
+extern "C" void reset_imu()
 {
-    BaseType_t core_id = xPortGetCoreID(); // 返回当前任务所在的核心 ID
-    ESP_LOGI(TAG, "Task is running on core %d.", core_id);
+    xSemaphoreTake(imu_mutex, portMAX_DELAY);
 
     start_i2c();
 
@@ -147,96 +160,130 @@ extern "C" void mpu6050(void *pvParameters)
         mpu.setDLPFMode(0);
     ESP_LOGI(TAG, "getDLPFMode()=%d", mpu.getDLPFMode());
 
-    // Set Kalman and gyro starting angle
-    double ax, ay, az;
-    double gx, gy, gz;
-    double roll, pitch;          // Roll and pitch are calculated using the accelerometer
-    double kalAngleX, kalAngleY; // Calculated angle using a Kalman filter
-
     _getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
     getRollPitch(ax, ay, az, &roll, &pitch);
     kalAngleX = roll;
     kalAngleY = pitch;
     kalmanX.setAngle(roll); // Set starting angle
     kalmanY.setAngle(pitch);
-    int64_t timer = esp_timer_get_time();
 
-    int8_t initialized = 0;
-    double initial_kalAngleX = 0.0;
-    double initial_kalAngleY = 0.0;
+    timer = esp_timer_get_time();
+
+    initialized = 0;
+    initial_kalAngleX = 0.0;
+    initial_kalAngleY = 0.0;
+
+    xSemaphoreGive(imu_mutex);
+}
+
+float _roll;
+float _pitch;
+
+void get_angle()
+{
+    getRollPitch(ax, ay, az, &roll, &pitch);
+
+    double dt = (double)(esp_timer_get_time() - timer) / 1000000; // Calculate delta time
+    timer = esp_timer_get_time();
+
+    /* Roll and pitch estimation */
+    double gyroXrate = gx;
+    double gyroYrate = gy;
+
+#ifdef RESTRICT_PITCH
+    // This fixes the transition problem when the accelerometer angle jumps between -180 and 180 degrees
+    if ((roll < -90 && kalAngleX > 90) || (roll > 90 && kalAngleX < -90))
+    {
+        kalmanX.setAngle(roll);
+        kalAngleX = roll;
+    }
+    else
+        kalAngleX = kalmanX.getAngle(roll, gyroXrate, dt); // Calculate the angle using a Kalman filter
+
+    if (abs(kalAngleX) > 90)
+        gyroYrate = -gyroYrate; // Invert rate, so it fits the restriced accelerometer reading
+    kalAngleY = kalmanY.getAngle(pitch, gyroYrate, dt);
+#else
+    // This fixes the transition problem when the accelerometer angle jumps between -180 and 180 degrees
+    if ((pitch < -90 && kalAngleY > 90) || (pitch > 90 && kalAngleY < -90))
+    {
+        kalmanY.setAngle(pitch);
+        kalAngleY = pitch;
+    }
+    else
+        kalAngleY = kalmanY.getAngle(pitch, gyroYrate, dt); // Calculate the angle using a Kalman filter
+
+    if (abs(kalAngleY) > 90)
+        gyroXrate = -gyroXrate;                        // Invert rate, so it fits the restriced accelerometer reading
+    kalAngleX = kalmanX.getAngle(roll, gyroXrate, dt); // Calculate the angle using a Kalman filter
+#endif
+
+    // Set the first data
+    if (!initialized)
+    {
+        initial_kalAngleX = kalAngleX;
+        initial_kalAngleY = kalAngleY;
+        initialized = 1;
+    }
+
+#if 0
+        printf("roll:%f", roll); printf(" ");
+        printf("kalAngleX:%f", kalAngleX); printf(" ");
+        printf("initial_kalAngleX:%f", initial_kalAngleX); printf(" ");
+        printf("kalAngleX-initial_kalAngleX:%f", kalAngleX-initial_kalAngleX); printf(" ");
+        printf("\n");
+
+        printf("pitch:%f", pitch); printf(" ");
+        printf("kalAngleY:%f", kalAngleY); printf(" ");
+        printf("initial_kalAngleY:%f", initial_kalAngleY); printf(" ");
+        printf("kalAngleY-initial_kalAngleY: %f", kalAngleY-initial_kalAngleY); printf(" ");
+        printf("\n");
+#endif
+
+    _roll = kalAngleX - initial_kalAngleX;
+    _pitch = kalAngleY - initial_kalAngleY;
+    // ESP_LOGI(TAG, "roll:%f pitch=%f", _roll, _pitch);
+}
+
+extern "C" void mpu6050(void *pvParameters)
+{
+    BaseType_t core_id = xPortGetCoreID(); // 返回当前任务所在的核心 ID
+    ESP_LOGI(TAG, "Task is running on core %d.", core_id);
+
+    imu_mutex = xSemaphoreCreateMutex();
+    configASSERT(imu_mutex);
+
+    reset_imu();
+    get_angle();
 
     while (1)
     {
+        xSemaphoreTake(imu_mutex, portMAX_DELAY);
         _getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
         // ESP_LOGI(TAG, "mpu data: %f %f %f - %f %f %f", ax, ay, az, gx, gy, gz);
-        getRollPitch(ax, ay, az, &roll, &pitch);
+        get_angle();
 
-        double dt = (double)(esp_timer_get_time() - timer) / 1000000; // Calculate delta time
-        timer = esp_timer_get_time();
-
-        /* Roll and pitch estimation */
-        double gyroXrate = gx;
-        double gyroYrate = gy;
-
-#ifdef RESTRICT_PITCH
-        // This fixes the transition problem when the accelerometer angle jumps between -180 and 180 degrees
-        if ((roll < -90 && kalAngleX > 90) || (roll > 90 && kalAngleX < -90))
-        {
-            kalmanX.setAngle(roll);
-            kalAngleX = roll;
-        }
-        else
-            kalAngleX = kalmanX.getAngle(roll, gyroXrate, dt); // Calculate the angle using a Kalman filter
-
-        if (abs(kalAngleX) > 90)
-            gyroYrate = -gyroYrate; // Invert rate, so it fits the restriced accelerometer reading
-        kalAngleY = kalmanY.getAngle(pitch, gyroYrate, dt);
-#else
-        // This fixes the transition problem when the accelerometer angle jumps between -180 and 180 degrees
-        if ((pitch < -90 && kalAngleY > 90) || (pitch > 90 && kalAngleY < -90))
-        {
-            kalmanY.setAngle(pitch);
-            kalAngleY = pitch;
-        }
-        else
-            kalAngleY = kalmanY.getAngle(pitch, gyroYrate, dt); // Calculate the angle using a Kalman filter
-
-        if (abs(kalAngleY) > 90)
-            gyroXrate = -gyroXrate;                        // Invert rate, so it fits the restriced accelerometer reading
-        kalAngleX = kalmanX.getAngle(roll, gyroXrate, dt); // Calculate the angle using a Kalman filter
-#endif
-
-        // Set the first data
-        if (!initialized)
-        {
-            initial_kalAngleX = kalAngleX;
-            initial_kalAngleY = kalAngleY;
-            initialized = 1;
-        }
-
-#if 0
-			printf("roll:%f", roll); printf(" ");
-			printf("kalAngleX:%f", kalAngleX); printf(" ");
-			printf("initial_kalAngleX:%f", initial_kalAngleX); printf(" ");
-			printf("kalAngleX-initial_kalAngleX:%f", kalAngleX-initial_kalAngleX); printf(" ");
-			printf("\n");
-
-			printf("pitch:%f", pitch); printf(" ");
-			printf("kalAngleY:%f", kalAngleY); printf(" ");
-			printf("initial_kalAngleY:%f", initial_kalAngleY); printf(" ");
-			printf("kalAngleY-initial_kalAngleY: %f", kalAngleY-initial_kalAngleY); printf(" ");
-			printf("\n");
-#endif
-
-        float _roll = kalAngleX - initial_kalAngleX;
-        float _pitch = kalAngleY - initial_kalAngleY;
-        // ESP_LOGI(TAG, "roll:%f pitch=%f", _roll, _pitch);
+        float ax_f = ax;
+        float ay_f = ay;
+        float az_f = az;
+        float gx_f = gx;
+        float gy_f = gy;
+        float gz_f = gz;
 
         memset(data, 0, sizeof(data));
         data[0] = SEND_WS_IMU_DATA_PREFIX;
         memcpy(data + 1, (void *)&_roll, sizeof(_roll));
         memcpy(data + 5, (void *)&_pitch, sizeof(_pitch));
-        xMessageBufferSend(xMessageBufferToClient, data, 9, 0);
+
+        memcpy(data + 9, (void *)&ax_f, sizeof(ax_f));
+        memcpy(data + 13, (void *)&ay_f, sizeof(ay_f));
+        memcpy(data + 17, (void *)&az_f, sizeof(az_f));
+        memcpy(data + 21, (void *)&gx_f, sizeof(gx_f));
+        memcpy(data + 25, (void *)&gy_f, sizeof(gy_f));
+        memcpy(data + 29, (void *)&gz_f, sizeof(gz_f));
+
+        xMessageBufferSend(xMessageBufferToClient, data, 33, 0);
+        xSemaphoreGive(imu_mutex);
 
         vTaskDelay(pdMS_TO_TICKS(125));
     } // end while

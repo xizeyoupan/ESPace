@@ -11,6 +11,7 @@
 #define FETCHED_GET_CONFIG 0
 #define FETCHED_SET_CONFIG 1
 #define FETCHED_RESET_CONFIG 2
+#define FETCHED_RESET_IMU 3
 
 #ifdef __cplusplus
 extern "C"

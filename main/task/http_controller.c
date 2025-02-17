@@ -2,7 +2,7 @@
 
 static const char *TAG = "HTTP_CONTROLLER";
 
-#define MAX_PAYLOAD_LEN 128
+#define MAX_PAYLOAD_LEN 1024
 uint8_t ws_buf[MAX_PAYLOAD_LEN] = {0};
 httpd_handle_t server = NULL;
 int fd = -1;
@@ -85,7 +85,6 @@ static esp_err_t wifi_info_get_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
-char once_ws_buffer[1024];
 esp_err_t websocket_handler(httpd_req_t *req)
 {
     if (req->method == HTTP_GET)
@@ -103,32 +102,32 @@ esp_err_t websocket_handler(httpd_req_t *req)
     ws_pkt.payload = ws_buf;
     httpd_ws_recv_frame(req, &ws_pkt, MAX_PAYLOAD_LEN);
     ws_pkt.payload[ws_pkt.len] = 0;
-    ESP_LOGI(TAG, "ws size: %d, data[0]: %d", ws_pkt.len, ws_pkt.payload[0]);
+    ESP_LOGI(TAG, "Receive ws size: %d, data[0]: %d", ws_pkt.len, ws_pkt.payload[0]);
 
     switch (ws_pkt.payload[0])
     {
     case FETCHED_SET_CONFIG:
         memcpy(&user_config, ws_pkt.payload + 1, sizeof(user_config));
         save_user_config();
-        once_ws_buffer[0] = SEND_USER_CONFIG_DATA_PREFIX;
-        memcpy(once_ws_buffer + 1, &user_config, sizeof(user_config));
-        memcpy(ws_pkt.payload, once_ws_buffer, 1 + sizeof(user_config));
+        ws_pkt.payload[0] = SEND_USER_CONFIG_DATA_PREFIX;
+        memcpy(ws_pkt.payload + 1, &user_config, sizeof(user_config));
         ws_pkt.len = 1 + sizeof(user_config);
         break;
     case FETCHED_RESET_CONFIG:
         reset_user_config();
-        once_ws_buffer[0] = SEND_USER_CONFIG_DATA_PREFIX;
-        memcpy(once_ws_buffer + 1, &user_config, sizeof(user_config));
-        memcpy(ws_pkt.payload, once_ws_buffer, 1 + sizeof(user_config));
+        ws_pkt.payload[0] = SEND_USER_CONFIG_DATA_PREFIX;
+        memcpy(ws_pkt.payload + 1, &user_config, sizeof(user_config));
         ws_pkt.len = 1 + sizeof(user_config);
         break;
     case FETCHED_GET_CONFIG:
-        once_ws_buffer[0] = SEND_USER_CONFIG_DATA_PREFIX;
-        memcpy(once_ws_buffer + 1, &user_config, sizeof(user_config));
-        memcpy(ws_pkt.payload, once_ws_buffer, 1 + sizeof(user_config));
+        ws_pkt.payload[0] = SEND_USER_CONFIG_DATA_PREFIX;
+        memcpy(ws_pkt.payload + 1, &user_config, sizeof(user_config));
         ws_pkt.len = 1 + sizeof(user_config);
         break;
-
+    case FETCHED_RESET_IMU:
+        reset_imu();
+        return ESP_OK;
+        break;
     default:
         break;
     }

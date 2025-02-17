@@ -26,6 +26,7 @@
 #include "freertos/message_buffer.h"
 #include "freertos/queue.h"
 #include "freertos/task.h"
+#include "freertos/semphr.h"
 
 #include "hal/efuse_ll.h"
 #include "hal/efuse_hal.h"
@@ -73,6 +74,7 @@ extern "C"
         gpio_num_t mpu_sda_gpio_num;
         gpio_num_t mpu_scl_gpio_num;
         uint8_t enable_imu_det;
+        uint8_t enable_ws_log;
     } user_config_t;
 
 #ifdef __cplusplus
