@@ -187,7 +187,6 @@ void websocket_send_task(void *pvParameters)
 httpd_handle_t start_webserver()
 {
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
-    config.stack_size = 1024 * 50;
     ESP_ERROR_CHECK(httpd_start(&server, &config));
 
     httpd_uri_t whoami_uri = {
