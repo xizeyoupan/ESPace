@@ -77,6 +77,7 @@ extern "C"
 
     typedef struct
     {
+        int8_t id;
         model_type type;
         uint16_t sample_tick;
         uint16_t sample_size;

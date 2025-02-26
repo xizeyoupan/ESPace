@@ -85,6 +85,7 @@ static esp_err_t wifi_info_get_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
+extern model_t current_model;
 esp_err_t websocket_handler(httpd_req_t *req)
 {
     if (req->method == HTTP_GET)
@@ -126,6 +127,14 @@ esp_err_t websocket_handler(httpd_req_t *req)
         break;
     case FETCHED_RESET_IMU:
         reset_imu();
+        return ESP_OK;
+        break;
+    case FETCHED_READY_TO_SCAN:
+        current_model.id = -1;
+        current_model.type = ws_pkt.payload[1];
+        current_model.sample_tick = ws_pkt.payload[2] << 8 | ws_pkt.payload[3];
+        current_model.sample_size = ws_pkt.payload[4] << 8 | ws_pkt.payload[5];
+        ESP_LOGI(TAG, "current_model.type: %d, sample_tick: %d, sample_size: %d", current_model.type, current_model.sample_tick, current_model.sample_size);
         return ESP_OK;
         break;
     default:

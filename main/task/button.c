@@ -3,13 +3,13 @@
 struct Button button0;
 struct Button button1;
 
-static const char* TAG = "BTN TASK";
-
-model_t current_model;
+static const char *TAG = "BTN TASK";
+EventGroupHandle_t button_event_group;
 
 uint8_t read_button_GPIO(uint8_t button_id)
 {
-    switch (button_id) {
+    switch (button_id)
+    {
     case 0:
         return gpio_get_level(BUTTON0_GPIO_NUM);
         break;
@@ -22,9 +22,10 @@ uint8_t read_button_GPIO(uint8_t button_id)
     }
 }
 
-void btn_single_click_handler(void* btn)
+void btn_single_click_handler(void *btn)
 {
-    switch ((((Button*)btn)->button_id)) {
+    switch ((((Button *)btn)->button_id))
+    {
     case 0:
         ESP_LOGI(TAG, "btn 0 single click");
         break;
@@ -36,9 +37,10 @@ void btn_single_click_handler(void* btn)
     }
 }
 
-void btn_long_press_handler(void* btn)
+void btn_long_press_handler(void *btn)
 {
-    switch ((((Button*)btn)->button_id)) {
+    switch ((((Button *)btn)->button_id))
+    {
     case 0:
         ESP_LOGI(TAG, "btn 0 holding");
         break;
@@ -50,11 +52,13 @@ void btn_long_press_handler(void* btn)
     }
 }
 
-void btn_press_down_up_handler(void* btn)
+void btn_press_down_up_handler(void *btn)
 {
-    switch ((((Button*)btn)->button_id)) {
+    switch ((((Button *)btn)->button_id))
+    {
     case 1:
-        switch (((Button*)btn)->event) {
+        switch (((Button *)btn)->event)
+        {
         case PRESS_DOWN:
             ESP_LOGI(TAG, "btn 1 press down");
             break;
@@ -70,17 +74,19 @@ void btn_press_down_up_handler(void* btn)
     }
 }
 
-void scan_button_task(void* pvParameters)
+void scan_button_task(void *pvParameters)
 {
     BaseType_t core_id = xPortGetCoreID(); // 返回当前任务所在的核心 ID
     ESP_LOGI(TAG, "Task is running on core %d.", core_id);
 
+    button_event_group = xEventGroupCreate();
+
     gpio_config_t io_conf = {};
-    io_conf.intr_type = GPIO_INTR_DISABLE; // 禁用中断
+    io_conf.intr_type = GPIO_INTR_DISABLE;                                          // 禁用中断
     io_conf.pin_bit_mask = (1ULL << BUTTON0_GPIO_NUM) | (1ULL << BUTTON1_GPIO_NUM); // 设置 GPIO
-    io_conf.mode = GPIO_MODE_INPUT; // 设置为输入模式
-    io_conf.pull_up_en = GPIO_PULLUP_ENABLE; // 启用上拉电阻
-    io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE; // 禁用下拉电阻
+    io_conf.mode = GPIO_MODE_INPUT;                                                 // 设置为输入模式
+    io_conf.pull_up_en = GPIO_PULLUP_ENABLE;                                        // 启用上拉电阻
+    io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;                                   // 禁用下拉电阻
     gpio_config(&io_conf);
 
     button_init(&button0, read_button_GPIO, 0, 0);
@@ -97,7 +103,8 @@ void scan_button_task(void* pvParameters)
     button_start(&button0);
     button_start(&button1);
 
-    while (1) {
+    while (1)
+    {
         button_ticks();
         vTaskDelay(pdMS_TO_TICKS(TICKS_INTERVAL));
     }

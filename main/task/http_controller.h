@@ -12,6 +12,7 @@
 #define FETCHED_SET_CONFIG 1
 #define FETCHED_RESET_CONFIG 2
 #define FETCHED_RESET_IMU 3
+#define FETCHED_READY_TO_SCAN 4
 
 #ifdef __cplusplus
 extern "C"

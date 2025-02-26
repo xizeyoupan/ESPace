@@ -4,6 +4,8 @@ user_config_t user_config;
 
 static const char *TAG = "MAIN";
 
+model_t current_model;
+
 #define LOG_BUFFER_LEN (1023)
 extern MessageBufferHandle_t xMessageBufferToClient;
 
