@@ -3,7 +3,7 @@
     "idf.openOcdConfigs": [
         "board/esp32-bridge.cfg"
     ],
-    "idf.portWin": "COM26",
+    "idf.portWin": "COM5",
     "idf.flashType": "UART",
     "files.associations": {
         "*.c": "c",
@@ -123,7 +123,8 @@
         "button.h": "c",
         "multi_button.h": "c",
         "message_buffer.h": "c",
-        "stdint.h": "c"
+        "stdint.h": "c",
+        "*.inc": "c"
     },
     "idf.port": "/dev/ttyUSB0",
     "idf.espIdfPath": "/home/mio/esp/v5.2.3/esp-idf",

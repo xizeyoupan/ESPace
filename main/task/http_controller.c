@@ -1,40 +1,38 @@
 #include "http_controller.h"
 
-static const char *TAG = "HTTP_CONTROLLER";
+static const char* TAG = "HTTP_CONTROLLER";
 
 #define MAX_PAYLOAD_LEN 1024
-uint8_t ws_buf[MAX_PAYLOAD_LEN] = {0};
+uint8_t ws_buf[MAX_PAYLOAD_LEN] = { 0 };
 httpd_handle_t server = NULL;
 int fd = -1;
 extern user_config_t user_config;
 
-static esp_err_t get_whoami_handler(httpd_req_t *req)
+static esp_err_t get_whoami_handler(httpd_req_t* req)
 {
     httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
-    const char *response = "0721esp32wand";
+    const char* response = "0721esp32wand";
     return httpd_resp_send(req, response, strlen(response));
 }
 
-static esp_err_t wifi_config_post_handler(httpd_req_t *req)
+static esp_err_t wifi_config_post_handler(httpd_req_t* req)
 {
     httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
 
     char content[128];
     int ret = httpd_req_recv(req, content, sizeof(content));
-    if (ret <= 0)
-    {
+    if (ret <= 0) {
         return ESP_FAIL;
     }
 
-    char wifi_ssid[WIFI_SSID_MAX_LEN + 1] = {0};
-    char wifi_pass[WIFI_PASS_MAX_LEN + 1] = {0};
+    char wifi_ssid[WIFI_SSID_MAX_LEN + 1] = { 0 };
+    char wifi_pass[WIFI_PASS_MAX_LEN + 1] = { 0 };
 
     content[ret] = '\0';
     ESP_LOGI(TAG, "content:\t\t%s", content);
 
     sscanf(content, "ssid=%32[^&]&password=%64s", wifi_ssid, wifi_pass);
-    if (!strlen(wifi_ssid))
-    {
+    if (!strlen(wifi_ssid)) {
         httpd_resp_set_status(req, "400 Bad Request");
         httpd_resp_send(req, "wifi_ssid is empty", HTTPD_RESP_USE_STRLEN);
         return ESP_OK;
@@ -49,36 +47,36 @@ static esp_err_t wifi_config_post_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
-static esp_err_t device_info_get_handler(httpd_req_t *req)
+static esp_err_t device_info_get_handler(httpd_req_t* req)
 {
     httpd_resp_set_type(req, "application/json");
     httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
 
-    char *response = get_device_info();
+    char* response = get_device_info();
 
     httpd_resp_send(req, response, strlen(response));
     cJSON_free(response);
     return ESP_OK;
 }
 
-static esp_err_t wifi_list_get_handler(httpd_req_t *req)
+static esp_err_t wifi_list_get_handler(httpd_req_t* req)
 {
     httpd_resp_set_type(req, "application/json");
     httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
 
-    char *response = get_wifi_list();
+    char* response = get_wifi_list();
 
     httpd_resp_send(req, response, strlen(response));
     cJSON_free(response);
     return ESP_OK;
 }
 
-static esp_err_t wifi_info_get_handler(httpd_req_t *req)
+static esp_err_t wifi_info_get_handler(httpd_req_t* req)
 {
     httpd_resp_set_type(req, "application/json");
     httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
 
-    char *response = get_wifi_info();
+    char* response = get_wifi_info();
 
     httpd_resp_send(req, response, strlen(response));
     cJSON_free(response);
@@ -86,10 +84,9 @@ static esp_err_t wifi_info_get_handler(httpd_req_t *req)
 }
 
 extern model_t current_model;
-esp_err_t websocket_handler(httpd_req_t *req)
+esp_err_t websocket_handler(httpd_req_t* req)
 {
-    if (req->method == HTTP_GET)
-    {
+    if (req->method == HTTP_GET) {
         ESP_LOGI(TAG, "Handshake done, connection open");
         return ESP_OK;
     }
@@ -105,8 +102,7 @@ esp_err_t websocket_handler(httpd_req_t *req)
     ws_pkt.payload[ws_pkt.len] = 0;
     ESP_LOGI(TAG, "Receive ws size: %d, data[0]: %d", ws_pkt.len, ws_pkt.payload[0]);
 
-    switch (ws_pkt.payload[0])
-    {
+    switch (ws_pkt.payload[0]) {
     case FETCHED_SET_CONFIG:
         memcpy(&user_config, ws_pkt.payload + 1, sizeof(user_config));
         save_user_config();
@@ -130,7 +126,7 @@ esp_err_t websocket_handler(httpd_req_t *req)
         return ESP_OK;
         break;
     case FETCHED_READY_TO_SCAN:
-        current_model.id = -1;
+        current_model.id = MODEL_DATASET_ID;
         current_model.type = ws_pkt.payload[1];
         current_model.sample_tick = ws_pkt.payload[2] << 8 | ws_pkt.payload[3];
         current_model.sample_size = ws_pkt.payload[4] << 8 | ws_pkt.payload[5];
@@ -147,32 +143,27 @@ esp_err_t websocket_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
-esp_err_t ws_send_data(char *data, uint16_t data_size)
+esp_err_t ws_send_data(char* data, uint16_t data_size)
 {
-    if (data == NULL)
-    {
+    if (data == NULL) {
         return ESP_FAIL;
     }
 
     httpd_ws_frame_t ws_pkt;
     memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
-    ws_pkt.payload = (uint8_t *)data;
+    ws_pkt.payload = (uint8_t*)data;
     ws_pkt.len = data_size;
     ws_pkt.type = HTTPD_WS_TYPE_BINARY;
 
     // ESP_LOGI(TAG, "data len:%d", ws_pkt.len);
 
     httpd_ws_send_frame_async(server, fd, &ws_pkt);
-    if (data[0] == SEND_IMU_DATASET_DATA_PREFIX)
-    {
-        ESP_LOGI(TAG, "exit send");
-    }
     return ESP_OK;
 }
 
 MessageBufferHandle_t xMessageBufferToClient;
 char ws_buffer[20000];
-void websocket_send_task(void *pvParameters)
+void websocket_send_task(void* pvParameters)
 {
     BaseType_t core_id = xPortGetCoreID(); // 返回当前任务所在的核心 ID
     ESP_LOGI(TAG, "Task is running on core %d.", core_id);
@@ -181,20 +172,12 @@ void websocket_send_task(void *pvParameters)
     xMessageBufferToClient = xMessageBufferCreate(40000);
     configASSERT(xMessageBufferToClient);
 
-    while (1)
-    {
+    while (1) {
         size_t msgSize = xMessageBufferReceive(xMessageBufferToClient, ws_buffer, sizeof(ws_buffer), portMAX_DELAY); // 读取完整消息
-        if (ws_buffer[0] == SEND_IMU_DATASET_DATA_PREFIX)
-        {
-            ESP_LOGI(TAG, "get imu data size: %d", msgSize);
-        }
 
-        if (server && fd != -1)
-        {
+        if (server && fd != -1) {
             ws_send_data(ws_buffer, msgSize);
-        }
-        else
-        {
+        } else {
             // ESP_LOGW(TAG, "server is null");
         }
     }
@@ -246,7 +229,8 @@ httpd_handle_t start_webserver()
         .uri = "/ws",
         .method = HTTP_GET,
         .handler = websocket_handler,
-        .is_websocket = true};
+        .is_websocket = true
+    };
     httpd_register_uri_handler(server, &ws_uri);
 
     ESP_LOGI(TAG, "start_webserver");
