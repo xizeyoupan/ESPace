@@ -28,24 +28,11 @@ void btn_single_click_handler(void *btn)
     {
     case 0:
         ESP_LOGI(TAG, "btn 0 single click");
+        xEventGroupSetBits(button_event_group, BTN0_SINGLE_CLICK_BIT);
         break;
     case 1:
         ESP_LOGI(TAG, "btn 1 single click");
-        break;
-    default:
-        break;
-    }
-}
-
-void btn_long_press_handler(void *btn)
-{
-    switch ((((Button *)btn)->button_id))
-    {
-    case 0:
-        ESP_LOGI(TAG, "btn 0 holding");
-        break;
-    case 1:
-        ESP_LOGI(TAG, "btn 1 holding");
+        xEventGroupSetBits(button_event_group, BTN1_SINGLE_CLICK_BIT);
         break;
     default:
         break;
@@ -56,13 +43,30 @@ void btn_press_down_up_handler(void *btn)
 {
     switch ((((Button *)btn)->button_id))
     {
+    case 0:
+        switch (((Button *)btn)->event)
+        {
+        case PRESS_DOWN:
+            xEventGroupSetBits(button_event_group, BTN0_DOWN_BIT);
+            ESP_LOGI(TAG, "btn 0 press down");
+            break;
+        case PRESS_UP:
+            xEventGroupClearBits(button_event_group, BTN0_DOWN_BIT);
+            ESP_LOGI(TAG, "btn 0 press up");
+            break;
+        default:
+            break;
+        }
+        break;
     case 1:
         switch (((Button *)btn)->event)
         {
         case PRESS_DOWN:
+            xEventGroupSetBits(button_event_group, BTN1_DOWN_BIT);
             ESP_LOGI(TAG, "btn 1 press down");
             break;
         case PRESS_UP:
+            xEventGroupClearBits(button_event_group, BTN1_DOWN_BIT);
             ESP_LOGI(TAG, "btn 1 press up");
             break;
         default:
@@ -95,10 +99,11 @@ void scan_button_task(void *pvParameters)
     button_attach(&button0, SINGLE_CLICK, btn_single_click_handler);
     button_attach(&button1, SINGLE_CLICK, btn_single_click_handler);
 
-    button_attach(&button0, LONG_PRESS_HOLD, btn_long_press_handler);
+    button_attach(&button0, PRESS_UP, btn_press_down_up_handler);
+    button_attach(&button0, PRESS_DOWN, btn_press_down_up_handler);
 
-    button_attach(&button1, PRESS_DOWN, btn_press_down_up_handler);
     button_attach(&button1, PRESS_UP, btn_press_down_up_handler);
+    button_attach(&button1, PRESS_DOWN, btn_press_down_up_handler);
 
     button_start(&button0);
     button_start(&button1);

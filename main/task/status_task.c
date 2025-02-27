@@ -86,10 +86,6 @@ void ws_send_task_state(void)
     memcpy(stat_data + data_index, &minimum_free_bytes, sizeof(minimum_free_bytes));
     data_index += sizeof(minimum_free_bytes);
 
-    uint16_t ws_bytes_available = xMessageBufferSpacesAvailable(xMessageBufferToClient);
-    memcpy(stat_data + data_index, &ws_bytes_available, sizeof(ws_bytes_available));
-    data_index += sizeof(ws_bytes_available);
-
     // ESP_LOGI(TAG, "Heap Info: Total free: %lu, Total allocated: %lu, Largest free block: %lu, Minimum free: %lu", total_free_bytes, total_allocated_bytes, largest_free_block, minimum_free_bytes);
     // ESP_LOGI(TAG, "data size: %d", data_index);
 

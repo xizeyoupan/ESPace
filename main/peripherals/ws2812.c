@@ -81,4 +81,6 @@ void WS2812_ControllerTask(void *pvParameters)
             ws2812_send_pixel(&led_chan, color);
         }
     }
+
+    vTaskDelete(NULL);
 }
