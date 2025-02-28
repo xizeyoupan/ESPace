@@ -43,7 +43,8 @@ void app_main(void)
 
     // Start ws2812
     xTaskCreatePinnedToCore(&WS2812_ControllerTask, "WS2812", 1024 * 5, NULL, 5, NULL, 1);
-    vTaskDelay(pdMS_TO_TICKS(10));
+
+    vTaskDelay(pdMS_TO_TICKS(100));
     uint32_t color = COLOR_YELLOW;
     xQueueSend(xWS2812Queue, &color, portMAX_DELAY);
 
@@ -53,6 +54,9 @@ void app_main(void)
     // Start ws
     xTaskCreatePinnedToCore(&websocket_send_task, "WS", 1024 * 5, NULL, 10, NULL, 0);
 
+    vTaskDelay(pdMS_TO_TICKS(1000));
+    configASSERT(xMessageBufferToClient);
+
     // Start imu task
     xTaskCreatePinnedToCore(&mpu6050, "IMU", 1024 * 8, NULL, 9, NULL, 1);
 
@@ -60,8 +64,6 @@ void app_main(void)
 
     xTaskCreatePinnedToCore(&scan_button_task, "BUTTON", 1024 * 5, NULL, 5, NULL, 1);
 
-    vTaskDelay(pdMS_TO_TICKS(1000));
-    configASSERT(xMessageBufferToClient);
     esp_log_set_vprintf(ws_vprintf);
 
     // xTaskCreate(&play_mp3_task, "MP3", 1024 * 10, NULL, 5, NULL);

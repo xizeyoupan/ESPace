@@ -80,6 +80,6 @@ direct_dependencies:
 - espressif/mdns
 - espressif/nghttp
 - idf
-manifest_hash: 32e146c9d3551367bbd6c699998f21e53f1045089e3ad21bb7e7342dbe649055
+manifest_hash: 22fe6df4dd73fdeb7886003a1f5ca278656127da2322127d49542a5768f0d839
 target: esp32
 version: 2.0.0
