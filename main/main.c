@@ -62,6 +62,8 @@ void app_main(void)
 
     xTaskCreatePinnedToCore(&status_task, "STAT", 1024 * 5, NULL, 4, NULL, 1);
 
+    xTaskCreatePinnedToCore(&CNN_task, "CNN_task", 1024 * 20, NULL, 10, NULL, 1);
+
     xTaskCreatePinnedToCore(&scan_button_task, "BUTTON", 1024 * 5, NULL, 5, NULL, 1);
 
     esp_log_set_vprintf(ws_vprintf);

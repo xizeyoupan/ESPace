@@ -46,7 +46,7 @@
 
 #include "nvs_flash.h"
 #include "nvs_util.h"
-#include "tftest.h"
+#include "CNN.h"
 
 typedef enum {
     COLOR_RED = 0xff0000,

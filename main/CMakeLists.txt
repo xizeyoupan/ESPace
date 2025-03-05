@@ -1,6 +1,6 @@
 idf_component_register(
     SRCS
-    "tftest.cc"
+    "CNN.cc"
     "nvs_util.c"
     "main.c"
     "./task/wand_server_task.c"
