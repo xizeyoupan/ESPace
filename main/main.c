@@ -1,5 +1,4 @@
 #include "user_config.h"
-extern QueueHandle_t xWS2812Queue;
 user_config_t user_config;
 
 static const char *TAG = "MAIN";
@@ -41,12 +40,8 @@ void app_main(void)
 
     load_user_config();
 
-    // Start ws2812
-    xTaskCreatePinnedToCore(&WS2812_ControllerTask, "WS2812", 1024 * 5, NULL, 5, NULL, 1);
-
-    vTaskDelay(pdMS_TO_TICKS(100));
-    uint32_t color = COLOR_YELLOW;
-    xQueueSend(xWS2812Queue, &color, portMAX_DELAY);
+    ws2812_init();
+    set_bg_color(COLOR_YELLOW);
 
     // Start wifi and web server
     xTaskCreatePinnedToCore(&wand_server_task, "WIFI_LOOP", 1024 * 5, NULL, 15, NULL, 0);
@@ -62,7 +57,7 @@ void app_main(void)
 
     xTaskCreatePinnedToCore(&status_task, "STAT", 1024 * 5, NULL, 4, NULL, 1);
 
-    xTaskCreatePinnedToCore(&CNN_task, "CNN_task", 1024 * 20, NULL, 10, NULL, 1);
+    xTaskCreatePinnedToCore(&CNN_task, "CNN", 1024 * 20, NULL, 10, NULL, 1);
 
     xTaskCreatePinnedToCore(&scan_button_task, "BUTTON", 1024 * 5, NULL, 5, NULL, 1);
 

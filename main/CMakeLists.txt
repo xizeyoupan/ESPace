@@ -1,17 +1,19 @@
 idf_component_register(
     SRCS
-    "CNN.cc"
+    "CNN.cpp"
     "nvs_util.c"
     "main.c"
     "./task/wand_server_task.c"
-    "./task/http_controller.c"
+    "./task/ws_task.c"
     "./task/play_mp3.c"
     "./task/status_task.c"
     "./task/button.c"
     "./service/wifi_service.c"
     "./service/device_service.c"
-    "./peripherals/ws2812.c"
-    "./peripherals/mpu_device.cpp"
+    "./service/button_service.c"
+    "./service/http_service.c"
+    "./service/ws2812_service.c"
+    "./service/mpu_service.cpp"
     INCLUDE_DIRS
     "."
     "./service"

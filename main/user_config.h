@@ -32,14 +32,15 @@
 #include "hal/efuse_hal.h"
 #include "hal/efuse_ll.h"
 
-#include "peripherals/mpu_device.h"
-#include "peripherals/ws2812.h"
-
 #include "service/device_service.h"
 #include "service/wifi_service.h"
+#include "service/button_service.h"
+#include "service/http_service.h"
+#include "service/ws2812_service.h"
+#include "service/mpu_service.h"
 
 #include "task/button.h"
-#include "task/http_controller.h"
+#include "task/ws_task.h"
 #include "task/play_mp3.h"
 #include "task/status_task.h"
 #include "task/wand_server_task.h"
@@ -48,7 +49,8 @@
 #include "nvs_util.h"
 #include "CNN.h"
 
-typedef enum {
+typedef enum
+{
     COLOR_RED = 0xff0000,
     COLOR_GREEN = 0x00ff00,
     COLOR_BLUE = 0x0000ff,
@@ -65,32 +67,34 @@ typedef enum {
 #define MODEL_DATASET_ID -1
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-typedef enum {
-    COMMAND_MODEL = 0,
-    CONTIOUS_MODEL = 1,
-} model_type;
+    typedef enum
+    {
+        COMMAND_MODEL = 0,
+        CONTIOUS_MODEL = 1,
+    } model_type;
 
-typedef struct
-{
-    int8_t id;
-    model_type type;
-    uint16_t sample_tick;
-    uint16_t sample_size;
-    uint8_t* data_p;
-} model_t;
+    typedef struct
+    {
+        int8_t id;
+        model_type type;
+        uint16_t sample_tick;
+        uint16_t sample_size;
+        uint8_t *data_p;
+    } model_t;
 
 #pragma pack(1)
-typedef struct
-{
-    gpio_num_t ws2812_gpio_num;
-    gpio_num_t mpu_sda_gpio_num;
-    gpio_num_t mpu_scl_gpio_num;
-    uint8_t enable_imu_det;
-    uint8_t enable_ws_log;
-} user_config_t;
+    typedef struct
+    {
+        gpio_num_t ws2812_gpio_num;
+        gpio_num_t mpu_sda_gpio_num;
+        gpio_num_t mpu_scl_gpio_num;
+        uint8_t enable_imu_det;
+        uint8_t enable_ws_log;
+    } user_config_t;
 
 #ifdef __cplusplus
 }

@@ -25,7 +25,7 @@ https://invensense.tdk.com/wp-content/uploads/2015/02/MPU-6000-Register-Map1.pdf
 https://invensense.tdk.com/wp-content/uploads/2015/02/MPU-6500-Register-Map2.pdf
 */
 
-#include "user_config.h"
+#include "mpu_service.h"
 
 // I2Cdev and MPU6050 must be installed as libraries, or else the .cpp/.h files
 // for both classes must be in the include path of your project
@@ -35,7 +35,7 @@ https://invensense.tdk.com/wp-content/uploads/2015/02/MPU-6500-Register-Map2.pdf
 // Source: https://github.com/TKJElectronics/KalmanFilter
 #include "Kalman.h"
 
-static const char* TAG = "IMU";
+static const char *TAG = "IMU";
 #define RESTRICT_PITCH // Comment out to restrict roll to ±90deg instead
 #define RAD_TO_DEG (180.0 / M_PI)
 #define DEG_TO_RAD 0.0174533
@@ -55,30 +55,34 @@ const int MAX_INPUT_SIZE = 800;
 uint8_t imu_input_data[MAX_INPUT_SIZE * 24 + 128];
 uint8_t imu_output_data[MAX_OUTPUT_SIZE * 24 + 128];
 
-void linear_interpolation(uint8_t* input, uint32_t input_size, uint8_t* output, uint32_t output_size)
+void linear_interpolation(uint8_t *input, uint32_t input_size, uint8_t *output, uint32_t output_size)
 {
-    for (uint32_t i = 0; i < output_size; i++) {
+    for (uint32_t i = 0; i < output_size; i++)
+    {
         float pos = (float)i * (input_size - 1) / (output_size - 1);
         uint32_t index = (uint32_t)pos;
         float weight = pos - index;
 
         float data0, data1;
-        if (index >= input_size - 1) {
-            memcpy((void*)&data0, input + (input_size - 1) * sizeof(float), sizeof(float));
-            memcpy(output + i * sizeof(float), (void*)&data0, sizeof(float));
-        } else {
-            memcpy((void*)&data0, input + index * sizeof(float), sizeof(float));
+        if (index >= input_size - 1)
+        {
+            memcpy((void *)&data0, input + (input_size - 1) * sizeof(float), sizeof(float));
+            memcpy(output + i * sizeof(float), (void *)&data0, sizeof(float));
+        }
+        else
+        {
+            memcpy((void *)&data0, input + index * sizeof(float), sizeof(float));
             data0 = data0 * (1 - weight);
-            memcpy((void*)&data1, input + (index + 1) * sizeof(float), sizeof(float));
+            memcpy((void *)&data1, input + (index + 1) * sizeof(float), sizeof(float));
             data1 = data1 * weight;
             data0 = data0 + data1;
-            memcpy(output + i * sizeof(float), (void*)&data0, sizeof(float));
+            memcpy(output + i * sizeof(float), (void *)&data0, sizeof(float));
         }
     }
 }
 
 // Get scaled value
-void _getMotion6(double* _ax, double* _ay, double* _az, double* _gx, double* _gy, double* _gz)
+void _getMotion6(double *_ax, double *_ay, double *_az, double *_gx, double *_gy, double *_gz)
 {
     int16_t ax, ay, az;
     int16_t gx, gy, gz;
@@ -98,7 +102,7 @@ void _getMotion6(double* _ax, double* _ay, double* _az, double* _gx, double* _gy
     *_gz = (double)gz / gyro_sensitivity;
 }
 
-void getRollPitch(double accX, double accY, double accZ, double* roll, double* pitch)
+void getRollPitch(double accX, double accY, double accZ, double *roll, double *pitch)
 {
     // atan2 outputs the value of -πto π(radians) - see http://en.wikipedia.org/wiki/Atan2
     // It is then converted from radians to degrees
@@ -114,7 +118,7 @@ void getRollPitch(double accX, double accY, double accZ, double* roll, double* p
 // Set Kalman and gyro starting angle
 double ax, ay, az;
 double gx, gy, gz;
-double roll, pitch; // Roll and pitch are calculated using the accelerometer
+double roll, pitch;          // Roll and pitch are calculated using the accelerometer
 double kalAngleX, kalAngleY; // Calculated angle using a Kalman filter
 
 int64_t timer;
@@ -217,10 +221,12 @@ void get_angle()
 
 #ifdef RESTRICT_PITCH
     // This fixes the transition problem when the accelerometer angle jumps between -180 and 180 degrees
-    if ((roll < -90 && kalAngleX > 90) || (roll > 90 && kalAngleX < -90)) {
+    if ((roll < -90 && kalAngleX > 90) || (roll > 90 && kalAngleX < -90))
+    {
         kalmanX.setAngle(roll);
         kalAngleX = roll;
-    } else
+    }
+    else
         kalAngleX = kalmanX.getAngle(roll, gyroXrate, dt); // Calculate the angle using a Kalman filter
 
     if (abs(kalAngleX) > 90)
@@ -228,19 +234,22 @@ void get_angle()
     kalAngleY = kalmanY.getAngle(pitch, gyroYrate, dt);
 #else
     // This fixes the transition problem when the accelerometer angle jumps between -180 and 180 degrees
-    if ((pitch < -90 && kalAngleY > 90) || (pitch > 90 && kalAngleY < -90)) {
+    if ((pitch < -90 && kalAngleY > 90) || (pitch > 90 && kalAngleY < -90))
+    {
         kalmanY.setAngle(pitch);
         kalAngleY = pitch;
-    } else
+    }
+    else
         kalAngleY = kalmanY.getAngle(pitch, gyroYrate, dt); // Calculate the angle using a Kalman filter
 
     if (abs(kalAngleY) > 90)
-        gyroXrate = -gyroXrate; // Invert rate, so it fits the restriced accelerometer reading
+        gyroXrate = -gyroXrate;                        // Invert rate, so it fits the restriced accelerometer reading
     kalAngleX = kalmanX.getAngle(roll, gyroXrate, dt); // Calculate the angle using a Kalman filter
 #endif
 
     // Set the first data
-    if (!initialized) {
+    if (!initialized)
+    {
         initial_kalAngleX = kalAngleX;
         initial_kalAngleY = kalAngleY;
         initialized = 1;
@@ -267,7 +276,7 @@ void get_angle()
 
 extern EventGroupHandle_t button_event_group;
 extern model_t current_model;
-extern "C" void mpu6050(void* pvParameters)
+extern "C" void mpu6050(void *pvParameters)
 {
     BaseType_t core_id = xPortGetCoreID(); // 返回当前任务所在的核心 ID
     ESP_LOGI(TAG, "Task is running on core %d.", core_id);
@@ -285,8 +294,10 @@ extern "C" void mpu6050(void* pvParameters)
     float gy_f = gy;
     float gz_f = gz;
 
-    while (1) {
-        if (user_config.enable_imu_det) {
+    while (1)
+    {
+        if (user_config.enable_imu_det)
+        {
             xSemaphoreTake(imu_mutex, portMAX_DELAY);
             _getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
             xSemaphoreGive(imu_mutex);
@@ -302,27 +313,31 @@ extern "C" void mpu6050(void* pvParameters)
 
             memset(imu_input_data, 0, sizeof(imu_input_data));
             imu_input_data[0] = SEND_WS_IMU_DATA_PREFIX;
-            memcpy(imu_input_data + 1, (void*)&_roll, sizeof(_roll));
-            memcpy(imu_input_data + 5, (void*)&_pitch, sizeof(_pitch));
-            memcpy(imu_input_data + 9, (void*)&ax_f, sizeof(ax_f));
-            memcpy(imu_input_data + 13, (void*)&ay_f, sizeof(ay_f));
-            memcpy(imu_input_data + 17, (void*)&az_f, sizeof(az_f));
-            memcpy(imu_input_data + 21, (void*)&gx_f, sizeof(gx_f));
-            memcpy(imu_input_data + 25, (void*)&gy_f, sizeof(gy_f));
-            memcpy(imu_input_data + 29, (void*)&gz_f, sizeof(gz_f));
+            memcpy(imu_input_data + 1, (void *)&_roll, sizeof(_roll));
+            memcpy(imu_input_data + 5, (void *)&_pitch, sizeof(_pitch));
+            memcpy(imu_input_data + 9, (void *)&ax_f, sizeof(ax_f));
+            memcpy(imu_input_data + 13, (void *)&ay_f, sizeof(ay_f));
+            memcpy(imu_input_data + 17, (void *)&az_f, sizeof(az_f));
+            memcpy(imu_input_data + 21, (void *)&gx_f, sizeof(gx_f));
+            memcpy(imu_input_data + 25, (void *)&gy_f, sizeof(gy_f));
+            memcpy(imu_input_data + 29, (void *)&gz_f, sizeof(gz_f));
             xMessageBufferSend(xMessageBufferToClient, imu_input_data, 33, 0);
             vTaskDelay(pdMS_TO_TICKS(125));
-        } else if (current_model.id == MODEL_DATASET_ID) {
+        }
+        else if (current_model.id == MODEL_DATASET_ID)
+        {
             EventBits_t uxReturn;
             uint32_t tick_size = 0;
             const uint32_t start_offset = 5;
             TickType_t xLastWakeTime = xTaskGetTickCount();
 
             uxReturn = xEventGroupWaitBits(button_event_group, BTN0_DOWN_BIT | BTN1_DOWN_BIT, pdFALSE, pdFALSE, 0);
-            if ((uxReturn & BTN0_DOWN_BIT) && current_model.type == CONTIOUS_MODEL) {
+            if ((uxReturn & BTN0_DOWN_BIT) && current_model.type == CONTIOUS_MODEL)
+            {
                 // 持续模型
                 tick_size = 0;
-                while ((uxReturn & BTN0_DOWN_BIT) && current_model.type == CONTIOUS_MODEL) {
+                while ((uxReturn & BTN0_DOWN_BIT) && current_model.type == CONTIOUS_MODEL)
+                {
                     uxReturn = xEventGroupWaitBits(button_event_group, BTN0_DOWN_BIT, pdFALSE, pdFALSE, 0);
                     // ESP_LOGI(TAG, "get btn 0 honlding");
 
@@ -336,27 +351,31 @@ extern "C" void mpu6050(void* pvParameters)
                     gy_f = gy;
                     gz_f = gz;
 
-                    memcpy(imu_output_data + start_offset + (current_model.sample_size * 0 + tick_size) * sizeof(float), (void*)&ax_f, sizeof(ax_f));
-                    memcpy(imu_output_data + start_offset + (current_model.sample_size * 1 + tick_size) * sizeof(float), (void*)&ay_f, sizeof(ay_f));
-                    memcpy(imu_output_data + start_offset + (current_model.sample_size * 2 + tick_size) * sizeof(float), (void*)&az_f, sizeof(az_f));
-                    memcpy(imu_output_data + start_offset + (current_model.sample_size * 3 + tick_size) * sizeof(float), (void*)&gx_f, sizeof(gx_f));
-                    memcpy(imu_output_data + start_offset + (current_model.sample_size * 4 + tick_size) * sizeof(float), (void*)&gy_f, sizeof(gy_f));
-                    memcpy(imu_output_data + start_offset + (current_model.sample_size * 5 + tick_size) * sizeof(float), (void*)&gz_f, sizeof(gz_f));
+                    memcpy(imu_output_data + start_offset + (current_model.sample_size * 0 + tick_size) * sizeof(float), (void *)&ax_f, sizeof(ax_f));
+                    memcpy(imu_output_data + start_offset + (current_model.sample_size * 1 + tick_size) * sizeof(float), (void *)&ay_f, sizeof(ay_f));
+                    memcpy(imu_output_data + start_offset + (current_model.sample_size * 2 + tick_size) * sizeof(float), (void *)&az_f, sizeof(az_f));
+                    memcpy(imu_output_data + start_offset + (current_model.sample_size * 3 + tick_size) * sizeof(float), (void *)&gx_f, sizeof(gx_f));
+                    memcpy(imu_output_data + start_offset + (current_model.sample_size * 4 + tick_size) * sizeof(float), (void *)&gy_f, sizeof(gy_f));
+                    memcpy(imu_output_data + start_offset + (current_model.sample_size * 5 + tick_size) * sizeof(float), (void *)&gz_f, sizeof(gz_f));
 
                     tick_size++;
-                    if (tick_size >= current_model.sample_size) {
+                    if (tick_size >= current_model.sample_size)
+                    {
                         imu_output_data[0] = SEND_IMU_DATASET_DATA_PREFIX;
-                        memcpy(imu_output_data + 1, (void*)&tick_size, sizeof(tick_size));
+                        memcpy(imu_output_data + 1, (void *)&tick_size, sizeof(tick_size));
                         xMessageBufferSend(xMessageBufferToClient, imu_output_data, tick_size * 24 + start_offset, portMAX_DELAY);
                         tick_size = 0;
                     }
                     vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(current_model.sample_tick));
                 }
                 ESP_LOGI(TAG, "exit btn 0 honlding");
-            } else if ((uxReturn & BTN1_DOWN_BIT) && current_model.type == COMMAND_MODEL) {
+            }
+            else if ((uxReturn & BTN1_DOWN_BIT) && current_model.type == COMMAND_MODEL)
+            {
                 // 指令模型
                 tick_size = 0;
-                while ((uxReturn & BTN1_DOWN_BIT) && current_model.type == COMMAND_MODEL) {
+                while ((uxReturn & BTN1_DOWN_BIT) && current_model.type == COMMAND_MODEL)
+                {
                     uxReturn = xEventGroupWaitBits(button_event_group, BTN1_DOWN_BIT, pdFALSE, pdFALSE, 0);
                     // ESP_LOGI(TAG, "get btn 1 honlding");
 
@@ -370,16 +389,17 @@ extern "C" void mpu6050(void* pvParameters)
                     gy_f = gy;
                     gz_f = gz;
 
-                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 0 + tick_size) * sizeof(float), (void*)&ax_f, sizeof(ax_f));
-                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 1 + tick_size) * sizeof(float), (void*)&ay_f, sizeof(ay_f));
-                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 2 + tick_size) * sizeof(float), (void*)&az_f, sizeof(az_f));
-                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 3 + tick_size) * sizeof(float), (void*)&gx_f, sizeof(gx_f));
-                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 4 + tick_size) * sizeof(float), (void*)&gy_f, sizeof(gy_f));
-                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 5 + tick_size) * sizeof(float), (void*)&gz_f, sizeof(gz_f));
+                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 0 + tick_size) * sizeof(float), (void *)&ax_f, sizeof(ax_f));
+                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 1 + tick_size) * sizeof(float), (void *)&ay_f, sizeof(ay_f));
+                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 2 + tick_size) * sizeof(float), (void *)&az_f, sizeof(az_f));
+                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 3 + tick_size) * sizeof(float), (void *)&gx_f, sizeof(gx_f));
+                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 4 + tick_size) * sizeof(float), (void *)&gy_f, sizeof(gy_f));
+                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 5 + tick_size) * sizeof(float), (void *)&gz_f, sizeof(gz_f));
 
                     tick_size++;
-                    if (tick_size >= MAX_INPUT_SIZE) {
-                        ws2812_blink(WS2812_BLINK_ERROR);
+                    if (tick_size >= MAX_INPUT_SIZE)
+                    {
+                        ws2812_blink(COLOR_RED);
                         break;
                     }
                     vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(current_model.sample_tick));
@@ -394,7 +414,7 @@ extern "C" void mpu6050(void* pvParameters)
 
                 imu_output_data[0] = SEND_IMU_DATASET_DATA_PREFIX;
                 tick_size = current_model.sample_size;
-                memcpy(imu_output_data + 1, (void*)&tick_size, sizeof(tick_size));
+                memcpy(imu_output_data + 1, (void *)&tick_size, sizeof(tick_size));
                 int sent = xMessageBufferSend(xMessageBufferToClient, imu_output_data, tick_size * 24 + start_offset, portMAX_DELAY);
                 ESP_LOGI(TAG, "data sent: %d, real size: %d", sent, int(tick_size * 24 + start_offset));
                 tick_size = 0;

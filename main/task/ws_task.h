@@ -1,5 +1,5 @@
-#ifndef __STATUS_H__
-#define __STATUS_H__
+#ifndef __WS_TASK_H__
+#define __WS_TASK_H__
 
 #include "user_config.h"
 
@@ -8,7 +8,7 @@ extern "C"
 {
 #endif
 
-    void status_task(void *pvParameters);
+    void websocket_send_task(void *pvParameters);
 
 #ifdef __cplusplus
 }

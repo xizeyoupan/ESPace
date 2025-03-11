@@ -18,7 +18,6 @@ static esp_netif_t *sta_netif = NULL;
 static esp_netif_t *ap_netif = NULL;
 
 static int s_retry_num = 0;
-extern QueueHandle_t xWS2812Queue;
 
 // Wi-Fi 事件处理程序
 static void wifi_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
@@ -43,8 +42,7 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base, int32_t e
 
             if (s_retry_num < CONFIG_ESP_MAXIMUM_RETRY)
             {
-                uint32_t color = COLOR_MAGENTA;
-                xQueueSend(xWS2812Queue, &color, portMAX_DELAY);
+                set_bg_color(COLOR_MAGENTA);
                 esp_wifi_connect();
                 s_retry_num++;
                 ESP_LOGI(TAG, "retry to connect to the AP, cnt = %d", s_retry_num);
@@ -64,8 +62,7 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base, int32_t e
         ESP_LOGI(TAG, "Connected with IP Address:" IPSTR, IP2STR(&event->ip_info.ip));
         xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
         s_retry_num = 0;
-        uint32_t color = COLOR_GREEN;
-        xQueueSend(xWS2812Queue, &color, portMAX_DELAY);
+        set_bg_color(COLOR_GREEN);
     }
 }
 
@@ -119,8 +116,7 @@ void start_ap_mode()
     ESP_ERROR_CHECK(esp_wifi_start());
     ESP_LOGI(TAG, "AP Mode started. SSID:%s Password:%s", AP_SSID, AP_PASS);
 
-    uint32_t color = COLOR_CYAN;
-    xQueueSend(xWS2812Queue, &color, portMAX_DELAY);
+    set_bg_color(COLOR_CYAN);
 }
 
 esp_err_t start_wifi(void)

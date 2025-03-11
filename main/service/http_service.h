@@ -1,7 +1,10 @@
-#ifndef __HTTP_CONTROLLER_H__
-#define __HTTP_CONTROLLER_H__
+#ifndef __HTTP_SERVICE_H__
+#define __HTTP_SERVICE_H__
 
 #include "user_config.h"
+
+#define WIFI_SSID_MAX_LEN 32
+#define WIFI_PASS_MAX_LEN 64
 
 #define SEND_USER_CONFIG_DATA_PREFIX 0
 #define SEND_WS_IMU_DATA_PREFIX 1
@@ -21,7 +24,6 @@ extern "C"
 #endif
 
     httpd_handle_t start_webserver();
-    void websocket_send_task(void *pvParameters);
 
 #ifdef __cplusplus
 }
