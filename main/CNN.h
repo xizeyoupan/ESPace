@@ -5,10 +5,9 @@
 #include "user_config.h"
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
-    void CNN_task(void *pvParameters);
+void CNN_task(void *pvParameters);
 #ifdef __cplusplus
 }
 #endif

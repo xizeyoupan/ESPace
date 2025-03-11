@@ -4,11 +4,10 @@
 #include "user_config.h"
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
-    void websocket_send_task(void *pvParameters);
+void websocket_send_task(void *pvParameters);
 
 #ifdef __cplusplus
 }

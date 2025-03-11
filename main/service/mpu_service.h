@@ -4,11 +4,10 @@
 #include "user_config.h"
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
-    void mpu6050(void *pvParameters);
-    void reset_imu();
+void mpu6050(void *pvParameters);
+void reset_imu();
 
 #ifdef __cplusplus
 }

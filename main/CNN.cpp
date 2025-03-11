@@ -26,13 +26,11 @@ namespace micro_test
     bool did_test_fail;
 }
 
-#define TF_LITE_MICRO_CHECK_FAIL()     \
-    do                                 \
-    {                                  \
-        if (micro_test::did_test_fail) \
-        {                              \
-            return kTfLiteError;       \
-        }                              \
+#define TF_LITE_MICRO_CHECK_FAIL()       \
+    do {                                 \
+        if (micro_test::did_test_fail) { \
+            return kTfLiteError;         \
+        }                                \
     } while (false)
 
 static const char *TAG = "TF";
@@ -41,8 +39,8 @@ static const char *TAG = "TF";
 // MicroSpeech models and using the larger of the two results.
 
 // constexpr int kAudioSampleFrequency = 16000;
-constexpr int kFeatureSize = 50;
-constexpr int kFeatureCount = 6;
+constexpr int kFeatureSize         = 50;
+constexpr int kFeatureCount        = 6;
 constexpr int kFeatureElementCount = (kFeatureSize * kFeatureCount);
 // constexpr int kFeatureStrideMs = 20;
 // constexpr int kFeatureDurationMs = 30;
@@ -118,8 +116,7 @@ TfLiteStatus LoadMicroSpeechModelAndPerformInference()
                             output->dims->data[output->dims->size - 1]);
     TF_LITE_MICRO_CHECK_FAIL();
 
-    while (1)
-    {
+    while (1) {
         break;
 
         uint64_t start = esp_timer_get_time();
@@ -133,7 +130,7 @@ TfLiteStatus LoadMicroSpeechModelAndPerformInference()
 
         ESP_LOGI(TAG, "Took %llu milliseconds", (end - start) / 1000);
 
-        float output_scale = output->params.scale;
+        float output_scale    = output->params.scale;
         int output_zero_point = output->params.zero_point;
 
         // Dequantize output values
@@ -141,13 +138,11 @@ TfLiteStatus LoadMicroSpeechModelAndPerformInference()
         float _max = -FLT_MAX;
         int _max_index;
 
-        for (int i = 0; i < kCategoryCount; i++)
-        {
+        for (int i = 0; i < kCategoryCount; i++) {
             // category_predictions[i] = (tflite::GetTensorData<modeltype>(output)[i] - output_zero_point) * output_scale;
             category_predictions[i] = tflite::GetTensorData<modeltype>(output)[i];
-            if (category_predictions[i] > _max)
-            {
-                _max = category_predictions[i];
+            if (category_predictions[i] > _max) {
+                _max       = category_predictions[i];
                 _max_index = i;
             }
 

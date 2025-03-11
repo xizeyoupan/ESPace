@@ -4,12 +4,11 @@
 #include "user_config.h"
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
-    char *get_wifi_list(void);
-    char *get_wifi_info(void);
+char *get_wifi_list(void);
+char *get_wifi_info(void);
 
 #ifdef __cplusplus
 }

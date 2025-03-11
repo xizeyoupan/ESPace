@@ -4,11 +4,10 @@
 #include "user_config.h"
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
-    void scan_button_task(void *pvParameters);
+void scan_button_task(void *pvParameters);
 
 #ifdef __cplusplus
 }

@@ -37,8 +37,8 @@ https://invensense.tdk.com/wp-content/uploads/2015/02/MPU-6500-Register-Map2.pdf
 
 static const char *TAG = "IMU";
 #define RESTRICT_PITCH // Comment out to restrict roll to ±90deg instead
-#define RAD_TO_DEG (180.0 / M_PI)
-#define DEG_TO_RAD 0.0174533
+#define RAD_TO_DEG     (180.0 / M_PI)
+#define DEG_TO_RAD     0.0174533
 
 extern MessageBufferHandle_t xMessageBufferToClient;
 extern user_config_t user_config;
@@ -49,28 +49,24 @@ SemaphoreHandle_t imu_mutex;
 
 // Accel & Gyro scale factor
 const double accel_sensitivity = 8192.0;
-const double gyro_sensitivity = 65.536;
-const int MAX_OUTPUT_SIZE = 500;
-const int MAX_INPUT_SIZE = 800;
+const double gyro_sensitivity  = 65.536;
+const int MAX_OUTPUT_SIZE      = 500;
+const int MAX_INPUT_SIZE       = 800;
 uint8_t imu_input_data[MAX_INPUT_SIZE * 24 + 128];
 uint8_t imu_output_data[MAX_OUTPUT_SIZE * 24 + 128];
 
 void linear_interpolation(uint8_t *input, uint32_t input_size, uint8_t *output, uint32_t output_size)
 {
-    for (uint32_t i = 0; i < output_size; i++)
-    {
-        float pos = (float)i * (input_size - 1) / (output_size - 1);
+    for (uint32_t i = 0; i < output_size; i++) {
+        float pos      = (float)i * (input_size - 1) / (output_size - 1);
         uint32_t index = (uint32_t)pos;
-        float weight = pos - index;
+        float weight   = pos - index;
 
         float data0, data1;
-        if (index >= input_size - 1)
-        {
+        if (index >= input_size - 1) {
             memcpy((void *)&data0, input + (input_size - 1) * sizeof(float), sizeof(float));
             memcpy(output + i * sizeof(float), (void *)&data0, sizeof(float));
-        }
-        else
-        {
+        } else {
             memcpy((void *)&data0, input + index * sizeof(float), sizeof(float));
             data0 = data0 * (1 - weight);
             memcpy((void *)&data1, input + (index + 1) * sizeof(float), sizeof(float));
@@ -107,10 +103,10 @@ void getRollPitch(double accX, double accY, double accZ, double *roll, double *p
     // atan2 outputs the value of -πto π(radians) - see http://en.wikipedia.org/wiki/Atan2
     // It is then converted from radians to degrees
 #ifdef RESTRICT_PITCH // Eq. 25 and 26
-    *roll = atan2(accY, accZ) * RAD_TO_DEG;
+    *roll  = atan2(accY, accZ) * RAD_TO_DEG;
     *pitch = atan(-accX / sqrt(accY * accY + accZ * accZ)) * RAD_TO_DEG;
 #else // Eq. 28 and 29
-    *roll = atan(accY / sqrt(accX * accX + accZ * accZ)) * RAD_TO_DEG;
+    *roll  = atan(accY / sqrt(accX * accX + accZ * accZ)) * RAD_TO_DEG;
     *pitch = atan2(-accX, accZ) * RAD_TO_DEG;
 #endif
 }
@@ -123,7 +119,7 @@ double kalAngleX, kalAngleY; // Calculated angle using a Kalman filter
 
 int64_t timer;
 
-int8_t initialized = 0;
+int8_t initialized       = 0;
 double initial_kalAngleX = 0.0;
 double initial_kalAngleY = 0.0;
 
@@ -131,13 +127,13 @@ void start_i2c(void)
 {
     i2c_driver_delete(I2C_NUM_0);
     i2c_config_t conf;
-    conf.mode = I2C_MODE_MASTER;
-    conf.sda_io_num = user_config.mpu_sda_gpio_num;
-    conf.scl_io_num = user_config.mpu_scl_gpio_num;
-    conf.sda_pullup_en = GPIO_PULLUP_ENABLE;
-    conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
+    conf.mode             = I2C_MODE_MASTER;
+    conf.sda_io_num       = user_config.mpu_sda_gpio_num;
+    conf.scl_io_num       = user_config.mpu_scl_gpio_num;
+    conf.sda_pullup_en    = GPIO_PULLUP_ENABLE;
+    conf.scl_pullup_en    = GPIO_PULLUP_ENABLE;
     conf.master.clk_speed = 400000;
-    conf.clk_flags = 0;
+    conf.clk_flags        = 0;
     ESP_ERROR_CHECK(i2c_param_config(I2C_NUM_0, &conf));
     ESP_ERROR_CHECK(i2c_driver_install(I2C_NUM_0, I2C_MODE_MASTER, 0, 0, 0));
 }
@@ -198,7 +194,7 @@ extern "C" void reset_imu()
 
     timer = esp_timer_get_time();
 
-    initialized = 0;
+    initialized       = 0;
     initial_kalAngleX = 0.0;
     initial_kalAngleY = 0.0;
 
@@ -213,7 +209,7 @@ void get_angle()
     getRollPitch(ax, ay, az, &roll, &pitch);
 
     double dt = (double)(esp_timer_get_time() - timer) / 1000000; // Calculate delta time
-    timer = esp_timer_get_time();
+    timer     = esp_timer_get_time();
 
     /* Roll and pitch estimation */
     double gyroXrate = gx;
@@ -221,12 +217,10 @@ void get_angle()
 
 #ifdef RESTRICT_PITCH
     // This fixes the transition problem when the accelerometer angle jumps between -180 and 180 degrees
-    if ((roll < -90 && kalAngleX > 90) || (roll > 90 && kalAngleX < -90))
-    {
+    if ((roll < -90 && kalAngleX > 90) || (roll > 90 && kalAngleX < -90)) {
         kalmanX.setAngle(roll);
         kalAngleX = roll;
-    }
-    else
+    } else
         kalAngleX = kalmanX.getAngle(roll, gyroXrate, dt); // Calculate the angle using a Kalman filter
 
     if (abs(kalAngleX) > 90)
@@ -234,12 +228,10 @@ void get_angle()
     kalAngleY = kalmanY.getAngle(pitch, gyroYrate, dt);
 #else
     // This fixes the transition problem when the accelerometer angle jumps between -180 and 180 degrees
-    if ((pitch < -90 && kalAngleY > 90) || (pitch > 90 && kalAngleY < -90))
-    {
+    if ((pitch < -90 && kalAngleY > 90) || (pitch > 90 && kalAngleY < -90)) {
         kalmanY.setAngle(pitch);
         kalAngleY = pitch;
-    }
-    else
+    } else
         kalAngleY = kalmanY.getAngle(pitch, gyroYrate, dt); // Calculate the angle using a Kalman filter
 
     if (abs(kalAngleY) > 90)
@@ -248,11 +240,10 @@ void get_angle()
 #endif
 
     // Set the first data
-    if (!initialized)
-    {
+    if (!initialized) {
         initial_kalAngleX = kalAngleX;
         initial_kalAngleY = kalAngleY;
-        initialized = 1;
+        initialized       = 1;
     }
 
 #if 0
@@ -269,7 +260,7 @@ void get_angle()
         printf("\n");
 #endif
 
-    _roll = kalAngleX - initial_kalAngleX;
+    _roll  = kalAngleX - initial_kalAngleX;
     _pitch = kalAngleY - initial_kalAngleY;
     // ESP_LOGI(TAG, "roll:%f pitch=%f", _roll, _pitch);
 }
@@ -294,10 +285,8 @@ extern "C" void mpu6050(void *pvParameters)
     float gy_f = gy;
     float gz_f = gz;
 
-    while (1)
-    {
-        if (user_config.enable_imu_det)
-        {
+    while (1) {
+        if (user_config.enable_imu_det) {
             xSemaphoreTake(imu_mutex, portMAX_DELAY);
             _getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
             xSemaphoreGive(imu_mutex);
@@ -323,21 +312,17 @@ extern "C" void mpu6050(void *pvParameters)
             memcpy(imu_input_data + 29, (void *)&gz_f, sizeof(gz_f));
             xMessageBufferSend(xMessageBufferToClient, imu_input_data, 33, 0);
             vTaskDelay(pdMS_TO_TICKS(125));
-        }
-        else if (current_model.id == MODEL_DATASET_ID)
-        {
+        } else if (current_model.id == MODEL_DATASET_ID) {
             EventBits_t uxReturn;
-            uint32_t tick_size = 0;
+            uint32_t tick_size          = 0;
             const uint32_t start_offset = 5;
-            TickType_t xLastWakeTime = xTaskGetTickCount();
+            TickType_t xLastWakeTime    = xTaskGetTickCount();
 
             uxReturn = xEventGroupWaitBits(button_event_group, BTN0_DOWN_BIT | BTN1_DOWN_BIT, pdFALSE, pdFALSE, 0);
-            if ((uxReturn & BTN0_DOWN_BIT) && current_model.type == CONTIOUS_MODEL)
-            {
+            if ((uxReturn & BTN0_DOWN_BIT) && current_model.type == CONTIOUS_MODEL) {
                 // 持续模型
                 tick_size = 0;
-                while ((uxReturn & BTN0_DOWN_BIT) && current_model.type == CONTIOUS_MODEL)
-                {
+                while ((uxReturn & BTN0_DOWN_BIT) && current_model.type == CONTIOUS_MODEL) {
                     uxReturn = xEventGroupWaitBits(button_event_group, BTN0_DOWN_BIT, pdFALSE, pdFALSE, 0);
                     // ESP_LOGI(TAG, "get btn 0 honlding");
 
@@ -359,8 +344,7 @@ extern "C" void mpu6050(void *pvParameters)
                     memcpy(imu_output_data + start_offset + (current_model.sample_size * 5 + tick_size) * sizeof(float), (void *)&gz_f, sizeof(gz_f));
 
                     tick_size++;
-                    if (tick_size >= current_model.sample_size)
-                    {
+                    if (tick_size >= current_model.sample_size) {
                         imu_output_data[0] = SEND_IMU_DATASET_DATA_PREFIX;
                         memcpy(imu_output_data + 1, (void *)&tick_size, sizeof(tick_size));
                         xMessageBufferSend(xMessageBufferToClient, imu_output_data, tick_size * 24 + start_offset, portMAX_DELAY);
@@ -369,13 +353,10 @@ extern "C" void mpu6050(void *pvParameters)
                     vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(current_model.sample_tick));
                 }
                 ESP_LOGI(TAG, "exit btn 0 honlding");
-            }
-            else if ((uxReturn & BTN1_DOWN_BIT) && current_model.type == COMMAND_MODEL)
-            {
+            } else if ((uxReturn & BTN1_DOWN_BIT) && current_model.type == COMMAND_MODEL) {
                 // 指令模型
                 tick_size = 0;
-                while ((uxReturn & BTN1_DOWN_BIT) && current_model.type == COMMAND_MODEL)
-                {
+                while ((uxReturn & BTN1_DOWN_BIT) && current_model.type == COMMAND_MODEL) {
                     uxReturn = xEventGroupWaitBits(button_event_group, BTN1_DOWN_BIT, pdFALSE, pdFALSE, 0);
                     // ESP_LOGI(TAG, "get btn 1 honlding");
 
@@ -397,8 +378,7 @@ extern "C" void mpu6050(void *pvParameters)
                     memcpy(imu_input_data + (MAX_INPUT_SIZE * 5 + tick_size) * sizeof(float), (void *)&gz_f, sizeof(gz_f));
 
                     tick_size++;
-                    if (tick_size >= MAX_INPUT_SIZE)
-                    {
+                    if (tick_size >= MAX_INPUT_SIZE) {
                         ws2812_blink(COLOR_RED);
                         break;
                     }
@@ -413,7 +393,7 @@ extern "C" void mpu6050(void *pvParameters)
                 linear_interpolation(imu_input_data + MAX_INPUT_SIZE * sizeof(float) * 5, tick_size, imu_output_data + start_offset + current_model.sample_size * sizeof(float) * 5, current_model.sample_size);
 
                 imu_output_data[0] = SEND_IMU_DATASET_DATA_PREFIX;
-                tick_size = current_model.sample_size;
+                tick_size          = current_model.sample_size;
                 memcpy(imu_output_data + 1, (void *)&tick_size, sizeof(tick_size));
                 int sent = xMessageBufferSend(xMessageBufferToClient, imu_output_data, tick_size * 24 + start_offset, portMAX_DELAY);
                 ESP_LOGI(TAG, "data sent: %d, real size: %d", sent, int(tick_size * 24 + start_offset));

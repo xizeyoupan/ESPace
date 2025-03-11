@@ -4,11 +4,10 @@
 #include "user_config.h"
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
-    char *get_device_info(void);
+char *get_device_info(void);
 
 #ifdef __cplusplus
 }

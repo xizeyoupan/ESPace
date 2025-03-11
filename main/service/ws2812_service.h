@@ -4,13 +4,12 @@
 #include "user_config.h"
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
-    void ws2812_blink(uint32_t color);
-    void set_bg_color(uint32_t color);
-    void ws2812_init();
+void ws2812_blink(uint32_t color);
+void set_bg_color(uint32_t color);
+void ws2812_init();
 
 #ifdef __cplusplus
 }

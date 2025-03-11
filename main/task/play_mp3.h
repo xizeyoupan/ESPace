@@ -4,11 +4,10 @@
 #include "user_config.h"
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
-    void play_mp3_task(void *pvParameters);
+void play_mp3_task(void *pvParameters);
 
 #ifdef __cplusplus
 }

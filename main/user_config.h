@@ -49,52 +49,49 @@
 #include "nvs_util.h"
 #include "CNN.h"
 
-typedef enum
-{
-    COLOR_RED = 0xff0000,
-    COLOR_GREEN = 0x00ff00,
-    COLOR_BLUE = 0x0000ff,
-    COLOR_YELLOW = 0xFFFF00,
+typedef enum {
+    COLOR_RED     = 0xff0000,
+    COLOR_GREEN   = 0x00ff00,
+    COLOR_BLUE    = 0x0000ff,
+    COLOR_YELLOW  = 0xFFFF00,
     COLOR_MAGENTA = 0xFF00FF,
-    COLOR_CYAN = 0x00FFFF,
-    COLOR_WHITE = 0xFFFFFF,
-    COLOR_NONE = 0x000000,
+    COLOR_CYAN    = 0x00FFFF,
+    COLOR_WHITE   = 0xFFFFFF,
+    COLOR_NONE    = 0x000000,
 } color_enum;
 
-#define SW_VERSION "v0.0.1"
+#define SW_VERSION                "v0.0.1"
 #define USER_CONFIG_NVS_NAMESPACE "user_config"
-#define USER_CONFIG_NVS_KEY "config_data"
-#define MODEL_DATASET_ID -1
+#define USER_CONFIG_NVS_KEY       "config_data"
+#define MODEL_DATASET_ID          -1
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
-    typedef enum
-    {
-        COMMAND_MODEL = 0,
-        CONTIOUS_MODEL = 1,
-    } model_type;
+typedef enum {
+    COMMAND_MODEL  = 0,
+    CONTIOUS_MODEL = 1,
+} model_type;
 
-    typedef struct
-    {
-        int8_t id;
-        model_type type;
-        uint16_t sample_tick;
-        uint16_t sample_size;
-        uint8_t *data_p;
-    } model_t;
+typedef struct
+{
+    int8_t id;
+    model_type type;
+    uint16_t sample_tick;
+    uint16_t sample_size;
+    uint8_t *data_p;
+} model_t;
 
 #pragma pack(1)
-    typedef struct
-    {
-        gpio_num_t ws2812_gpio_num;
-        gpio_num_t mpu_sda_gpio_num;
-        gpio_num_t mpu_scl_gpio_num;
-        uint8_t enable_imu_det;
-        uint8_t enable_ws_log;
-    } user_config_t;
+typedef struct
+{
+    gpio_num_t ws2812_gpio_num;
+    gpio_num_t mpu_sda_gpio_num;
+    gpio_num_t mpu_scl_gpio_num;
+    uint8_t enable_imu_det;
+    uint8_t enable_ws_log;
+} user_config_t;
 
 #ifdef __cplusplus
 }

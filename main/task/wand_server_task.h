@@ -4,13 +4,12 @@
 #include "user_config.h"
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
-    void start_ap_mode();
-    void start_sta_mode();
-    void wand_server_task(void *pvParameters);
+void start_ap_mode();
+void start_sta_mode();
+void wand_server_task(void *pvParameters);
 
 #ifdef __cplusplus
 }
