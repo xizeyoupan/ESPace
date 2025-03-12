@@ -38,6 +38,7 @@
 #include "service/http_service.h"
 #include "service/ws2812_service.h"
 #include "service/mpu_service.h"
+#include "service/control_service.h"
 
 #include "task/button.h"
 #include "task/ws_task.h"
@@ -68,20 +69,6 @@ typedef enum {
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-typedef enum {
-    COMMAND_MODEL  = 0,
-    CONTIOUS_MODEL = 1,
-} model_type;
-
-typedef struct
-{
-    int8_t id;
-    model_type type;
-    uint16_t sample_tick;
-    uint16_t sample_size;
-    uint8_t *data_p;
-} model_t;
 
 #pragma pack(1)
 typedef struct

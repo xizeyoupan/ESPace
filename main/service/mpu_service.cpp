@@ -42,6 +42,10 @@ static const char *TAG = "IMU";
 
 extern MessageBufferHandle_t xMessageBufferToClient;
 extern user_config_t user_config;
+extern ccb_t circulation_control_block_array[NUM_OF_MODULES];
+extern mode_index_type mode_index;
+extern EventGroupHandle_t button_event_group;
+
 MPU6050 mpu;
 Kalman kalmanX; // Create the Kalman instances
 Kalman kalmanY;
@@ -265,8 +269,6 @@ void get_angle()
     // ESP_LOGI(TAG, "roll:%f pitch=%f", _roll, _pitch);
 }
 
-extern EventGroupHandle_t button_event_group;
-extern model_t current_model;
 extern "C" void mpu6050(void *pvParameters)
 {
     BaseType_t core_id = xPortGetCoreID(); // 返回当前任务所在的核心 ID
@@ -286,6 +288,8 @@ extern "C" void mpu6050(void *pvParameters)
     float gz_f = gz;
 
     while (1) {
+        vTaskDelay(pdMS_TO_TICKS(10));
+
         if (user_config.enable_imu_det) {
             xSemaphoreTake(imu_mutex, portMAX_DELAY);
             _getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
@@ -312,17 +316,26 @@ extern "C" void mpu6050(void *pvParameters)
             memcpy(imu_input_data + 29, (void *)&gz_f, sizeof(gz_f));
             xMessageBufferSend(xMessageBufferToClient, imu_input_data, 33, 0);
             vTaskDelay(pdMS_TO_TICKS(125));
-        } else if (current_model.id == MODEL_DATASET_ID) {
+        } else {
+
+            model_type m_type    = circulation_control_block_array[mode_index].type;
+            uint16_t sample_size = circulation_control_block_array[mode_index].mcb.sample_size;
+            uint16_t sample_tick = circulation_control_block_array[mode_index].mcb.sample_tick;
+
+            if (mode_index < 0 || mode_index >= MODE_NUM || sample_size == 0 || sample_tick == 0) {
+                continue;
+            }
+
             EventBits_t uxReturn;
-            uint32_t tick_size          = 0;
+            uint32_t tot_sample_size    = 0;
             const uint32_t start_offset = 5;
             TickType_t xLastWakeTime    = xTaskGetTickCount();
 
             uxReturn = xEventGroupWaitBits(button_event_group, BTN0_DOWN_BIT | BTN1_DOWN_BIT, pdFALSE, pdFALSE, 0);
-            if ((uxReturn & BTN0_DOWN_BIT) && current_model.type == CONTIOUS_MODEL) {
+            if ((uxReturn & BTN0_DOWN_BIT) && m_type == CONTIOUS_MODEL) {
                 // 持续模型
-                tick_size = 0;
-                while ((uxReturn & BTN0_DOWN_BIT) && current_model.type == CONTIOUS_MODEL) {
+                tot_sample_size = 0;
+                while ((uxReturn & BTN0_DOWN_BIT) && m_type == CONTIOUS_MODEL) {
                     uxReturn = xEventGroupWaitBits(button_event_group, BTN0_DOWN_BIT, pdFALSE, pdFALSE, 0);
                     // ESP_LOGI(TAG, "get btn 0 honlding");
 
@@ -336,27 +349,27 @@ extern "C" void mpu6050(void *pvParameters)
                     gy_f = gy;
                     gz_f = gz;
 
-                    memcpy(imu_output_data + start_offset + (current_model.sample_size * 0 + tick_size) * sizeof(float), (void *)&ax_f, sizeof(ax_f));
-                    memcpy(imu_output_data + start_offset + (current_model.sample_size * 1 + tick_size) * sizeof(float), (void *)&ay_f, sizeof(ay_f));
-                    memcpy(imu_output_data + start_offset + (current_model.sample_size * 2 + tick_size) * sizeof(float), (void *)&az_f, sizeof(az_f));
-                    memcpy(imu_output_data + start_offset + (current_model.sample_size * 3 + tick_size) * sizeof(float), (void *)&gx_f, sizeof(gx_f));
-                    memcpy(imu_output_data + start_offset + (current_model.sample_size * 4 + tick_size) * sizeof(float), (void *)&gy_f, sizeof(gy_f));
-                    memcpy(imu_output_data + start_offset + (current_model.sample_size * 5 + tick_size) * sizeof(float), (void *)&gz_f, sizeof(gz_f));
+                    memcpy(imu_output_data + start_offset + (sample_size * 0 + tot_sample_size) * sizeof(float), (void *)&ax_f, sizeof(ax_f));
+                    memcpy(imu_output_data + start_offset + (sample_size * 1 + tot_sample_size) * sizeof(float), (void *)&ay_f, sizeof(ay_f));
+                    memcpy(imu_output_data + start_offset + (sample_size * 2 + tot_sample_size) * sizeof(float), (void *)&az_f, sizeof(az_f));
+                    memcpy(imu_output_data + start_offset + (sample_size * 3 + tot_sample_size) * sizeof(float), (void *)&gx_f, sizeof(gx_f));
+                    memcpy(imu_output_data + start_offset + (sample_size * 4 + tot_sample_size) * sizeof(float), (void *)&gy_f, sizeof(gy_f));
+                    memcpy(imu_output_data + start_offset + (sample_size * 5 + tot_sample_size) * sizeof(float), (void *)&gz_f, sizeof(gz_f));
 
-                    tick_size++;
-                    if (tick_size >= current_model.sample_size) {
+                    tot_sample_size++;
+                    if (tot_sample_size >= sample_size) {
                         imu_output_data[0] = SEND_IMU_DATASET_DATA_PREFIX;
-                        memcpy(imu_output_data + 1, (void *)&tick_size, sizeof(tick_size));
-                        xMessageBufferSend(xMessageBufferToClient, imu_output_data, tick_size * 24 + start_offset, portMAX_DELAY);
-                        tick_size = 0;
+                        memcpy(imu_output_data + 1, (void *)&tot_sample_size, sizeof(tot_sample_size));
+                        xMessageBufferSend(xMessageBufferToClient, imu_output_data, tot_sample_size * 24 + start_offset, portMAX_DELAY);
+                        tot_sample_size = 0;
                     }
-                    vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(current_model.sample_tick));
+                    vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(sample_tick));
                 }
                 ESP_LOGI(TAG, "exit btn 0 honlding");
-            } else if ((uxReturn & BTN1_DOWN_BIT) && current_model.type == COMMAND_MODEL) {
+            } else if ((uxReturn & BTN1_DOWN_BIT) && m_type == COMMAND_MODEL) {
                 // 指令模型
-                tick_size = 0;
-                while ((uxReturn & BTN1_DOWN_BIT) && current_model.type == COMMAND_MODEL) {
+                tot_sample_size = 0;
+                while ((uxReturn & BTN1_DOWN_BIT) && m_type == COMMAND_MODEL) {
                     uxReturn = xEventGroupWaitBits(button_event_group, BTN1_DOWN_BIT, pdFALSE, pdFALSE, 0);
                     // ESP_LOGI(TAG, "get btn 1 honlding");
 
@@ -370,40 +383,38 @@ extern "C" void mpu6050(void *pvParameters)
                     gy_f = gy;
                     gz_f = gz;
 
-                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 0 + tick_size) * sizeof(float), (void *)&ax_f, sizeof(ax_f));
-                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 1 + tick_size) * sizeof(float), (void *)&ay_f, sizeof(ay_f));
-                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 2 + tick_size) * sizeof(float), (void *)&az_f, sizeof(az_f));
-                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 3 + tick_size) * sizeof(float), (void *)&gx_f, sizeof(gx_f));
-                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 4 + tick_size) * sizeof(float), (void *)&gy_f, sizeof(gy_f));
-                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 5 + tick_size) * sizeof(float), (void *)&gz_f, sizeof(gz_f));
+                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 0 + tot_sample_size) * sizeof(float), (void *)&ax_f, sizeof(ax_f));
+                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 1 + tot_sample_size) * sizeof(float), (void *)&ay_f, sizeof(ay_f));
+                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 2 + tot_sample_size) * sizeof(float), (void *)&az_f, sizeof(az_f));
+                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 3 + tot_sample_size) * sizeof(float), (void *)&gx_f, sizeof(gx_f));
+                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 4 + tot_sample_size) * sizeof(float), (void *)&gy_f, sizeof(gy_f));
+                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 5 + tot_sample_size) * sizeof(float), (void *)&gz_f, sizeof(gz_f));
 
-                    tick_size++;
-                    if (tick_size >= MAX_INPUT_SIZE) {
+                    tot_sample_size++;
+                    if (tot_sample_size >= MAX_INPUT_SIZE) {
                         ws2812_blink(COLOR_RED);
                         break;
                     }
-                    vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(current_model.sample_tick));
+                    vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(sample_tick));
                 }
 
-                linear_interpolation(imu_input_data + MAX_INPUT_SIZE * sizeof(float) * 0, tick_size, imu_output_data + start_offset + current_model.sample_size * sizeof(float) * 0, current_model.sample_size);
-                linear_interpolation(imu_input_data + MAX_INPUT_SIZE * sizeof(float) * 1, tick_size, imu_output_data + start_offset + current_model.sample_size * sizeof(float) * 1, current_model.sample_size);
-                linear_interpolation(imu_input_data + MAX_INPUT_SIZE * sizeof(float) * 2, tick_size, imu_output_data + start_offset + current_model.sample_size * sizeof(float) * 2, current_model.sample_size);
-                linear_interpolation(imu_input_data + MAX_INPUT_SIZE * sizeof(float) * 3, tick_size, imu_output_data + start_offset + current_model.sample_size * sizeof(float) * 3, current_model.sample_size);
-                linear_interpolation(imu_input_data + MAX_INPUT_SIZE * sizeof(float) * 4, tick_size, imu_output_data + start_offset + current_model.sample_size * sizeof(float) * 4, current_model.sample_size);
-                linear_interpolation(imu_input_data + MAX_INPUT_SIZE * sizeof(float) * 5, tick_size, imu_output_data + start_offset + current_model.sample_size * sizeof(float) * 5, current_model.sample_size);
+                linear_interpolation(imu_input_data + MAX_INPUT_SIZE * sizeof(float) * 0, tot_sample_size, imu_output_data + start_offset + sample_size * sizeof(float) * 0, sample_size);
+                linear_interpolation(imu_input_data + MAX_INPUT_SIZE * sizeof(float) * 1, tot_sample_size, imu_output_data + start_offset + sample_size * sizeof(float) * 1, sample_size);
+                linear_interpolation(imu_input_data + MAX_INPUT_SIZE * sizeof(float) * 2, tot_sample_size, imu_output_data + start_offset + sample_size * sizeof(float) * 2, sample_size);
+                linear_interpolation(imu_input_data + MAX_INPUT_SIZE * sizeof(float) * 3, tot_sample_size, imu_output_data + start_offset + sample_size * sizeof(float) * 3, sample_size);
+                linear_interpolation(imu_input_data + MAX_INPUT_SIZE * sizeof(float) * 4, tot_sample_size, imu_output_data + start_offset + sample_size * sizeof(float) * 4, sample_size);
+                linear_interpolation(imu_input_data + MAX_INPUT_SIZE * sizeof(float) * 5, tot_sample_size, imu_output_data + start_offset + sample_size * sizeof(float) * 5, sample_size);
 
                 imu_output_data[0] = SEND_IMU_DATASET_DATA_PREFIX;
-                tick_size          = current_model.sample_size;
-                memcpy(imu_output_data + 1, (void *)&tick_size, sizeof(tick_size));
-                int sent = xMessageBufferSend(xMessageBufferToClient, imu_output_data, tick_size * 24 + start_offset, portMAX_DELAY);
-                ESP_LOGI(TAG, "data sent: %d, real size: %d", sent, int(tick_size * 24 + start_offset));
-                tick_size = 0;
+                tot_sample_size    = sample_size;
+                memcpy(imu_output_data + 1, (void *)&tot_sample_size, sizeof(tot_sample_size));
+                int sent = xMessageBufferSend(xMessageBufferToClient, imu_output_data, tot_sample_size * 24 + start_offset, portMAX_DELAY);
+                ESP_LOGI(TAG, "data sent: %d, real size: %d", sent, int(tot_sample_size * 24 + start_offset));
+                tot_sample_size = 0;
                 ESP_LOGI(TAG, "exit btn 1 honlding");
             }
             vTaskDelay(pdMS_TO_TICKS(pdMS_TO_TICKS(1)));
         }
-
-        vTaskDelay(pdMS_TO_TICKS(10));
     }
 
     // Never reach here

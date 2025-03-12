@@ -127,7 +127,8 @@
         "*.inc": "c",
         "button_service.h": "c",
         "http_service.h": "c",
-        "ws2812_service.h": "c"
+        "ws2812_service.h": "c",
+        "control_service.h": "c"
     },
     "idf.port": "/dev/ttyUSB0",
     "idf.espIdfPath": "/home/mio/esp/v5.2.3/esp-idf",

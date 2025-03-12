@@ -4,10 +4,13 @@ static const char *TAG = "HTTP_SERVICE";
 
 #define MAX_PAYLOAD_LEN 1024
 uint8_t ws_buf[MAX_PAYLOAD_LEN] = {0};
-httpd_handle_t server = NULL;
-int fd = -1;
+httpd_handle_t server           = NULL;
+int fd                          = -1;
+
 extern user_config_t user_config;
-extern model_t current_model;
+extern mode_index_type mode_index;
+extern SemaphoreHandle_t control_block_mutex;
+extern ccb_t circulation_control_block_array[NUM_OF_MODULES];
 
 static esp_err_t get_whoami_handler(httpd_req_t *req)
 {
@@ -22,8 +25,7 @@ static esp_err_t wifi_config_post_handler(httpd_req_t *req)
 
     char content[128];
     int ret = httpd_req_recv(req, content, sizeof(content));
-    if (ret <= 0)
-    {
+    if (ret <= 0) {
         return ESP_FAIL;
     }
 
@@ -34,8 +36,7 @@ static esp_err_t wifi_config_post_handler(httpd_req_t *req)
     ESP_LOGI(TAG, "content:\t\t%s", content);
 
     sscanf(content, "ssid=%32[^&]&password=%64s", wifi_ssid, wifi_pass);
-    if (!strlen(wifi_ssid))
-    {
+    if (!strlen(wifi_ssid)) {
         httpd_resp_set_status(req, "400 Bad Request");
         httpd_resp_send(req, "wifi_ssid is empty", HTTPD_RESP_USE_STRLEN);
         return ESP_OK;
@@ -88,8 +89,7 @@ static esp_err_t wifi_info_get_handler(httpd_req_t *req)
 
 esp_err_t websocket_handler(httpd_req_t *req)
 {
-    if (req->method == HTTP_GET)
-    {
+    if (req->method == HTTP_GET) {
         ESP_LOGI(TAG, "Handshake done, connection open");
         return ESP_OK;
     }
@@ -99,46 +99,52 @@ esp_err_t websocket_handler(httpd_req_t *req)
     // 处理 WebSocket 数据帧
     httpd_ws_frame_t ws_pkt;
     memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
-    ws_pkt.type = HTTPD_WS_TYPE_TEXT;
+    ws_pkt.type    = HTTPD_WS_TYPE_TEXT;
     ws_pkt.payload = ws_buf;
     httpd_ws_recv_frame(req, &ws_pkt, MAX_PAYLOAD_LEN);
     ws_pkt.payload[ws_pkt.len] = 0;
     ESP_LOGI(TAG, "Receive ws size: %d, data[0]: %d", ws_pkt.len, ws_pkt.payload[0]);
 
-    switch (ws_pkt.payload[0])
-    {
-    case FETCHED_SET_CONFIG:
-        memcpy(&user_config, ws_pkt.payload + 1, sizeof(user_config));
-        save_user_config();
-        ws_pkt.payload[0] = SEND_USER_CONFIG_DATA_PREFIX;
-        memcpy(ws_pkt.payload + 1, &user_config, sizeof(user_config));
-        ws_pkt.len = 1 + sizeof(user_config);
-        break;
-    case FETCHED_RESET_CONFIG:
-        reset_user_config();
-        ws_pkt.payload[0] = SEND_USER_CONFIG_DATA_PREFIX;
-        memcpy(ws_pkt.payload + 1, &user_config, sizeof(user_config));
-        ws_pkt.len = 1 + sizeof(user_config);
-        break;
-    case FETCHED_GET_CONFIG:
-        ws_pkt.payload[0] = SEND_USER_CONFIG_DATA_PREFIX;
-        memcpy(ws_pkt.payload + 1, &user_config, sizeof(user_config));
-        ws_pkt.len = 1 + sizeof(user_config);
-        break;
-    case FETCHED_RESET_IMU:
-        reset_imu();
-        return ESP_OK;
-        break;
-    case FETCHED_READY_TO_SCAN:
-        current_model.id = MODEL_DATASET_ID;
-        current_model.type = ws_pkt.payload[1];
-        current_model.sample_tick = ws_pkt.payload[2] << 8 | ws_pkt.payload[3];
-        current_model.sample_size = ws_pkt.payload[4] << 8 | ws_pkt.payload[5];
-        ESP_LOGI(TAG, "current_model.type: %d, sample_tick: %d, sample_size: %d", current_model.type, current_model.sample_tick, current_model.sample_size);
-        return ESP_OK;
-        break;
-    default:
-        break;
+    switch (ws_pkt.payload[0]) {
+        case FETCHED_SET_CONFIG:
+            memcpy(&user_config, ws_pkt.payload + 1, sizeof(user_config));
+            save_user_config();
+            ws_pkt.payload[0] = SEND_USER_CONFIG_DATA_PREFIX;
+            memcpy(ws_pkt.payload + 1, &user_config, sizeof(user_config));
+            ws_pkt.len = 1 + sizeof(user_config);
+            break;
+        case FETCHED_RESET_CONFIG:
+            reset_user_config();
+            ws_pkt.payload[0] = SEND_USER_CONFIG_DATA_PREFIX;
+            memcpy(ws_pkt.payload + 1, &user_config, sizeof(user_config));
+            ws_pkt.len = 1 + sizeof(user_config);
+            break;
+        case FETCHED_GET_CONFIG:
+            ws_pkt.payload[0] = SEND_USER_CONFIG_DATA_PREFIX;
+            memcpy(ws_pkt.payload + 1, &user_config, sizeof(user_config));
+            ws_pkt.len = 1 + sizeof(user_config);
+            break;
+        case FETCHED_RESET_IMU:
+            reset_imu();
+            return ESP_OK;
+            break;
+        case FETCHED_READY_TO_SCAN:
+            model_type m_type    = ws_pkt.payload[1];
+            uint16_t sample_tick = ws_pkt.payload[2] << 8 | ws_pkt.payload[3];
+            uint16_t sample_size = ws_pkt.payload[4] << 8 | ws_pkt.payload[5];
+
+            xSemaphoreTake(control_block_mutex, portMAX_DELAY);
+            mode_index                                                  = MODE_DATASET;
+            circulation_control_block_array[mode_index].type            = m_type;
+            circulation_control_block_array[mode_index].mcb.sample_tick = sample_tick;
+            circulation_control_block_array[mode_index].mcb.sample_size = sample_size;
+            xSemaphoreGive(control_block_mutex);
+
+            ESP_LOGI(TAG, "dataset info: type: %d, sample_tick: %d, sample_size: %d", m_type, sample_tick, sample_size);
+            return ESP_OK;
+            break;
+        default:
+            break;
     }
 
     ws_pkt.type = HTTPD_WS_TYPE_BINARY;
@@ -154,44 +160,44 @@ httpd_handle_t start_webserver()
     ESP_ERROR_CHECK(httpd_start(&server, &config));
 
     httpd_uri_t whoami_uri = {
-        .uri = "/whoami",
-        .method = HTTP_GET,
+        .uri     = "/whoami",
+        .method  = HTTP_GET,
         .handler = get_whoami_handler,
     };
     httpd_register_uri_handler(server, &whoami_uri);
 
     httpd_uri_t config_uri = {
-        .uri = "/connect_ap",
-        .method = HTTP_POST,
+        .uri     = "/connect_ap",
+        .method  = HTTP_POST,
         .handler = wifi_config_post_handler,
     };
     httpd_register_uri_handler(server, &config_uri);
 
     httpd_uri_t info_uri = {
-        .uri = "/info",
-        .method = HTTP_GET,
+        .uri     = "/info",
+        .method  = HTTP_GET,
         .handler = device_info_get_handler,
     };
     httpd_register_uri_handler(server, &info_uri);
 
     httpd_uri_t wifi_list_uri = {
-        .uri = "/wifi_list",
-        .method = HTTP_GET,
+        .uri     = "/wifi_list",
+        .method  = HTTP_GET,
         .handler = wifi_list_get_handler,
     };
     httpd_register_uri_handler(server, &wifi_list_uri);
 
     httpd_uri_t wifi_info_uri = {
-        .uri = "/wifi_info",
-        .method = HTTP_GET,
+        .uri     = "/wifi_info",
+        .method  = HTTP_GET,
         .handler = wifi_info_get_handler,
     };
     httpd_register_uri_handler(server, &wifi_info_uri);
 
     httpd_uri_t ws_uri = {
-        .uri = "/ws",
-        .method = HTTP_GET,
-        .handler = websocket_handler,
+        .uri          = "/ws",
+        .method       = HTTP_GET,
+        .handler      = websocket_handler,
         .is_websocket = true};
     httpd_register_uri_handler(server, &ws_uri);
 

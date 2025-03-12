@@ -14,6 +14,7 @@ idf_component_register(
     "./service/http_service.c"
     "./service/ws2812_service.c"
     "./service/mpu_service.cpp"
+    "./service/control_service.c"
     INCLUDE_DIRS
     "."
     "./service"
