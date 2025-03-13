@@ -129,15 +129,20 @@ esp_err_t websocket_handler(httpd_req_t *req)
             return ESP_OK;
             break;
         case FETCHED_READY_TO_SCAN:
-            model_type m_type    = ws_pkt.payload[1];
+            model_type_t m_type    = ws_pkt.payload[1];
             uint16_t sample_tick = ws_pkt.payload[2] << 8 | ws_pkt.payload[3];
             uint16_t sample_size = ws_pkt.payload[4] << 8 | ws_pkt.payload[5];
 
             xSemaphoreTake(control_block_mutex, portMAX_DELAY);
-            mode_index                                                  = MODE_DATASET;
-            circulation_control_block_array[mode_index].type            = m_type;
-            circulation_control_block_array[mode_index].mcb.sample_tick = sample_tick;
-            circulation_control_block_array[mode_index].mcb.sample_size = sample_size;
+            mode_index                                       = MODE_DATASET;
+            circulation_control_block_array[mode_index].type = m_type;
+            if (m_type == COMMAND_MODEL) {
+                circulation_control_block_array[mode_index].command_mcb.sample_tick = sample_tick;
+                circulation_control_block_array[mode_index].command_mcb.sample_size = sample_size;
+            } else {
+                circulation_control_block_array[mode_index].continuous_mcb.sample_tick = sample_tick;
+                circulation_control_block_array[mode_index].continuous_mcb.sample_size = sample_size;
+            }
             xSemaphoreGive(control_block_mutex);
 
             ESP_LOGI(TAG, "dataset info: type: %d, sample_tick: %d, sample_size: %d", m_type, sample_tick, sample_size);

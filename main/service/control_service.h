@@ -8,7 +8,7 @@
 typedef enum {
     COMMAND_MODEL  = 0,
     CONTIOUS_MODEL = 1,
-} model_type;
+} model_type_t;
 
 typedef enum {
     MODE_INVAL = -1,
@@ -33,8 +33,9 @@ typedef struct
 {
     int8_t id;
     uint32_t bg_color;
-    mcb_t mcb;
-    model_type type;
+    mcb_t continuous_mcb;
+    mcb_t command_mcb;
+    model_type_t type;
     void (*btn0_click_cb)();
     void (*btn1_click_cb)();
     void (*continuous_model_cb)(int);

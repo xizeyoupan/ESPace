@@ -317,10 +317,15 @@ extern "C" void mpu6050(void *pvParameters)
             xMessageBufferSend(xMessageBufferToClient, imu_input_data, 33, 0);
             vTaskDelay(pdMS_TO_TICKS(125));
         } else {
-
-            model_type m_type    = circulation_control_block_array[mode_index].type;
-            uint16_t sample_size = circulation_control_block_array[mode_index].mcb.sample_size;
-            uint16_t sample_tick = circulation_control_block_array[mode_index].mcb.sample_tick;
+            model_type_t m_type = circulation_control_block_array[mode_index].type;
+            mcb_t mcb;
+            if (m_type == COMMAND_MODEL) {
+                mcb = circulation_control_block_array[mode_index].command_mcb;
+            } else {
+                mcb = circulation_control_block_array[mode_index].continuous_mcb;
+            }
+            uint16_t sample_size = mcb.sample_size;
+            uint16_t sample_tick = mcb.sample_tick;
 
             if (mode_index < 0 || mode_index >= MODE_NUM || sample_size == 0 || sample_tick == 0) {
                 continue;
