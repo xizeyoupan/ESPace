@@ -35,54 +35,53 @@ https://invensense.tdk.com/wp-content/uploads/2015/02/MPU-6500-Register-Map2.pdf
 // Source: https://github.com/TKJElectronics/KalmanFilter
 #include "Kalman.h"
 
-static const char *TAG = "IMU";
+static const char* TAG = "MPU_SERVICE";
 #define RESTRICT_PITCH // Comment out to restrict roll to ±90deg instead
-#define RAD_TO_DEG     (180.0 / M_PI)
-#define DEG_TO_RAD     0.0174533
+#define RAD_TO_DEG (180.0 / M_PI)
+#define DEG_TO_RAD 0.0174533
 
-extern MessageBufferHandle_t xMessageBufferToClient;
 extern user_config_t user_config;
-extern ccb_t circulation_control_block_array[NUM_OF_MODULES];
-extern mode_index_type mode_index;
 extern EventGroupHandle_t button_event_group;
 
 MPU6050 mpu;
 Kalman kalmanX; // Create the Kalman instances
 Kalman kalmanY;
-SemaphoreHandle_t imu_mutex;
+SemaphoreHandle_t mpu_mutex;
 
 // Accel & Gyro scale factor
 const double accel_sensitivity = 8192.0;
-const double gyro_sensitivity  = 65.536;
-const int MAX_OUTPUT_SIZE      = 500;
-const int MAX_INPUT_SIZE       = 800;
+const double gyro_sensitivity = 65.536;
+const int MAX_OUTPUT_SIZE = 500;
+const int MAX_INPUT_SIZE = 800;
 uint8_t imu_input_data[MAX_INPUT_SIZE * 24 + 128];
 uint8_t imu_output_data[MAX_OUTPUT_SIZE * 24 + 128];
 
-void linear_interpolation(uint8_t *input, uint32_t input_size, uint8_t *output, uint32_t output_size)
+int sent = 0;
+
+void linear_interpolation(uint8_t* input, uint32_t input_size, uint8_t* output, uint32_t output_size)
 {
     for (uint32_t i = 0; i < output_size; i++) {
-        float pos      = (float)i * (input_size - 1) / (output_size - 1);
+        float pos = (float)i * (input_size - 1) / (output_size - 1);
         uint32_t index = (uint32_t)pos;
-        float weight   = pos - index;
+        float weight = pos - index;
 
         float data0, data1;
         if (index >= input_size - 1) {
-            memcpy((void *)&data0, input + (input_size - 1) * sizeof(float), sizeof(float));
-            memcpy(output + i * sizeof(float), (void *)&data0, sizeof(float));
+            memcpy((void*)&data0, input + (input_size - 1) * sizeof(float), sizeof(float));
+            memcpy(output + i * sizeof(float), (void*)&data0, sizeof(float));
         } else {
-            memcpy((void *)&data0, input + index * sizeof(float), sizeof(float));
+            memcpy((void*)&data0, input + index * sizeof(float), sizeof(float));
             data0 = data0 * (1 - weight);
-            memcpy((void *)&data1, input + (index + 1) * sizeof(float), sizeof(float));
+            memcpy((void*)&data1, input + (index + 1) * sizeof(float), sizeof(float));
             data1 = data1 * weight;
             data0 = data0 + data1;
-            memcpy(output + i * sizeof(float), (void *)&data0, sizeof(float));
+            memcpy(output + i * sizeof(float), (void*)&data0, sizeof(float));
         }
     }
 }
 
 // Get scaled value
-void _getMotion6(double *_ax, double *_ay, double *_az, double *_gx, double *_gy, double *_gz)
+void _getMotion6(double* _ax, double* _ay, double* _az, double* _gx, double* _gy, double* _gz)
 {
     int16_t ax, ay, az;
     int16_t gx, gy, gz;
@@ -102,15 +101,15 @@ void _getMotion6(double *_ax, double *_ay, double *_az, double *_gx, double *_gy
     *_gz = (double)gz / gyro_sensitivity;
 }
 
-void getRollPitch(double accX, double accY, double accZ, double *roll, double *pitch)
+void getRollPitch(double accX, double accY, double accZ, double* roll, double* pitch)
 {
     // atan2 outputs the value of -πto π(radians) - see http://en.wikipedia.org/wiki/Atan2
     // It is then converted from radians to degrees
 #ifdef RESTRICT_PITCH // Eq. 25 and 26
-    *roll  = atan2(accY, accZ) * RAD_TO_DEG;
+    *roll = atan2(accY, accZ) * RAD_TO_DEG;
     *pitch = atan(-accX / sqrt(accY * accY + accZ * accZ)) * RAD_TO_DEG;
 #else // Eq. 28 and 29
-    *roll  = atan(accY / sqrt(accX * accX + accZ * accZ)) * RAD_TO_DEG;
+    *roll = atan(accY / sqrt(accX * accX + accZ * accZ)) * RAD_TO_DEG;
     *pitch = atan2(-accX, accZ) * RAD_TO_DEG;
 #endif
 }
@@ -118,33 +117,39 @@ void getRollPitch(double accX, double accY, double accZ, double *roll, double *p
 // Set Kalman and gyro starting angle
 double ax, ay, az;
 double gx, gy, gz;
-double roll, pitch;          // Roll and pitch are calculated using the accelerometer
+double roll, pitch; // Roll and pitch are calculated using the accelerometer
 double kalAngleX, kalAngleY; // Calculated angle using a Kalman filter
 
 int64_t timer;
 
-int8_t initialized       = 0;
+int8_t initialized = 0;
 double initial_kalAngleX = 0.0;
 double initial_kalAngleY = 0.0;
 
+uint8_t i2c_installed = 0;
+
 void start_i2c(void)
 {
-    i2c_driver_delete(I2C_NUM_0);
     i2c_config_t conf;
-    conf.mode             = I2C_MODE_MASTER;
-    conf.sda_io_num       = user_config.mpu_sda_gpio_num;
-    conf.scl_io_num       = user_config.mpu_scl_gpio_num;
-    conf.sda_pullup_en    = GPIO_PULLUP_ENABLE;
-    conf.scl_pullup_en    = GPIO_PULLUP_ENABLE;
+    conf.mode = I2C_MODE_MASTER;
+    conf.sda_io_num = user_config.mpu_sda_gpio_num;
+    conf.scl_io_num = user_config.mpu_scl_gpio_num;
+    conf.sda_pullup_en = GPIO_PULLUP_ENABLE;
+    conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
     conf.master.clk_speed = 400000;
-    conf.clk_flags        = 0;
+    conf.clk_flags = 0;
+
+    if (i2c_installed) {
+        i2c_driver_delete(I2C_NUM_0);
+    }
     ESP_ERROR_CHECK(i2c_param_config(I2C_NUM_0, &conf));
     ESP_ERROR_CHECK(i2c_driver_install(I2C_NUM_0, I2C_MODE_MASTER, 0, 0, 0));
+    i2c_installed = 1;
 }
 
 extern "C" void reset_imu()
 {
-    xSemaphoreTake(imu_mutex, portMAX_DELAY);
+    xSemaphoreTake(mpu_mutex, portMAX_DELAY);
 
     start_i2c();
 
@@ -198,22 +203,23 @@ extern "C" void reset_imu()
 
     timer = esp_timer_get_time();
 
-    initialized       = 0;
+    initialized = 0;
     initial_kalAngleX = 0.0;
     initial_kalAngleY = 0.0;
 
-    xSemaphoreGive(imu_mutex);
+    xSemaphoreGive(mpu_mutex);
 }
 
-float _roll;
-float _pitch;
-
-void get_angle()
+void get_angle_and_m6(double* _roll, double* _pitch, double* _ax, double* _ay, double* _az, double* _gx, double* _gy, double* _gz)
 {
+    xSemaphoreTake(mpu_mutex, portMAX_DELAY);
+    _getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
+    xSemaphoreGive(mpu_mutex);
+
     getRollPitch(ax, ay, az, &roll, &pitch);
 
     double dt = (double)(esp_timer_get_time() - timer) / 1000000; // Calculate delta time
-    timer     = esp_timer_get_time();
+    timer = esp_timer_get_time();
 
     /* Roll and pitch estimation */
     double gyroXrate = gx;
@@ -239,7 +245,7 @@ void get_angle()
         kalAngleY = kalmanY.getAngle(pitch, gyroYrate, dt); // Calculate the angle using a Kalman filter
 
     if (abs(kalAngleY) > 90)
-        gyroXrate = -gyroXrate;                        // Invert rate, so it fits the restriced accelerometer reading
+        gyroXrate = -gyroXrate; // Invert rate, so it fits the restriced accelerometer reading
     kalAngleX = kalmanX.getAngle(roll, gyroXrate, dt); // Calculate the angle using a Kalman filter
 #endif
 
@@ -247,7 +253,7 @@ void get_angle()
     if (!initialized) {
         initial_kalAngleX = kalAngleX;
         initial_kalAngleY = kalAngleY;
-        initialized       = 1;
+        initialized = 1;
     }
 
 #if 0
@@ -264,21 +270,29 @@ void get_angle()
         printf("\n");
 #endif
 
-    _roll  = kalAngleX - initial_kalAngleX;
-    _pitch = kalAngleY - initial_kalAngleY;
+    *_roll = kalAngleX - initial_kalAngleX;
+    *_pitch = kalAngleY - initial_kalAngleY;
     // ESP_LOGI(TAG, "roll:%f pitch=%f", _roll, _pitch);
+    *_ax = ax;
+    *_ay = ay;
+    *_az = az;
+    *_gx = gx;
+    *_gy = gy;
+    *_gz = gz;
 }
 
-extern "C" void mpu6050(void *pvParameters)
+void mpu_mutex_init()
+{
+    mpu_mutex = xSemaphoreCreateMutex();
+    configASSERT(mpu_mutex);
+}
+
+extern "C" void mpu6050(void* pvParameters)
 {
     BaseType_t core_id = xPortGetCoreID(); // 返回当前任务所在的核心 ID
     ESP_LOGI(TAG, "Task is running on core %d.", core_id);
 
-    imu_mutex = xSemaphoreCreateMutex();
-    configASSERT(imu_mutex);
-
     reset_imu();
-    get_angle();
 
     float ax_f = ax;
     float ay_f = ay;
@@ -290,13 +304,10 @@ extern "C" void mpu6050(void *pvParameters)
     while (1) {
         vTaskDelay(pdMS_TO_TICKS(10));
 
-        if (user_config.enable_imu_det) {
-            xSemaphoreTake(imu_mutex, portMAX_DELAY);
-            _getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
-            xSemaphoreGive(imu_mutex);
+        if (0) {
+
             // ESP_LOGI(TAG, "mpu data: %f %f %f - %f %f %f", ax, ay, az, gx, gy, gz);
 
-            get_angle();
             ax_f = ax;
             ay_f = ay;
             az_f = az;
@@ -304,49 +315,42 @@ extern "C" void mpu6050(void *pvParameters)
             gy_f = gy;
             gz_f = gz;
 
-            memset(imu_input_data, 0, sizeof(imu_input_data));
-            imu_input_data[0] = SEND_WS_IMU_DATA_PREFIX;
-            memcpy(imu_input_data + 1, (void *)&_roll, sizeof(_roll));
-            memcpy(imu_input_data + 5, (void *)&_pitch, sizeof(_pitch));
-            memcpy(imu_input_data + 9, (void *)&ax_f, sizeof(ax_f));
-            memcpy(imu_input_data + 13, (void *)&ay_f, sizeof(ay_f));
-            memcpy(imu_input_data + 17, (void *)&az_f, sizeof(az_f));
-            memcpy(imu_input_data + 21, (void *)&gx_f, sizeof(gx_f));
-            memcpy(imu_input_data + 25, (void *)&gy_f, sizeof(gy_f));
-            memcpy(imu_input_data + 29, (void *)&gz_f, sizeof(gz_f));
-            xMessageBufferSend(xMessageBufferToClient, imu_input_data, 33, 0);
-            vTaskDelay(pdMS_TO_TICKS(125));
+            // memset(imu_input_data, 0, sizeof(imu_input_data));
+            // memcpy(imu_input_data + 1, (void*)&_roll, sizeof(_roll));
+            // memcpy(imu_input_data + 5, (void*)&_pitch, sizeof(_pitch));
+            // memcpy(imu_input_data + 9, (void*)&ax_f, sizeof(ax_f));
+            // memcpy(imu_input_data + 13, (void*)&ay_f, sizeof(ay_f));
+            // memcpy(imu_input_data + 17, (void*)&az_f, sizeof(az_f));
+            // memcpy(imu_input_data + 21, (void*)&gx_f, sizeof(gx_f));
+            // memcpy(imu_input_data + 25, (void*)&gy_f, sizeof(gy_f));
+            // memcpy(imu_input_data + 29, (void*)&gz_f, sizeof(gz_f));
+            // // xMessageBufferSend(xMessageBufferToClient, imu_input_data, 33, 0);
+            // vTaskDelay(pdMS_TO_TICKS(125));
         } else {
-            model_type_t m_type = circulation_control_block_array[mode_index].type;
-            mcb_t mcb;
-            if (m_type == COMMAND_MODEL) {
-                mcb = circulation_control_block_array[mode_index].command_mcb;
-            } else {
-                mcb = circulation_control_block_array[mode_index].continuous_mcb;
-            }
-            uint16_t sample_size = mcb.sample_size;
-            uint16_t sample_tick = mcb.sample_tick;
 
-            if (mode_index < 0 || mode_index >= MODE_NUM || sample_size == 0 || sample_tick == 0) {
+            uint16_t sample_size = 0;
+            uint16_t sample_tick = 0;
+
+            if (sample_size == 0 || sample_tick == 0) {
                 continue;
             }
 
             EventBits_t uxReturn;
-            uint32_t tot_sample_size    = 0;
+            uint32_t tot_sample_size = 0;
             const uint32_t start_offset = 5;
-            TickType_t xLastWakeTime    = xTaskGetTickCount();
+            TickType_t xLastWakeTime = xTaskGetTickCount();
 
             uxReturn = xEventGroupWaitBits(button_event_group, BTN0_DOWN_BIT | BTN1_DOWN_BIT, pdFALSE, pdFALSE, 0);
-            if ((uxReturn & BTN0_DOWN_BIT) && m_type == CONTIOUS_MODEL) {
+            if ((uxReturn & BTN0_DOWN_BIT) && 1 == 1) {
                 // 持续模型
                 tot_sample_size = 0;
-                while ((uxReturn & BTN0_DOWN_BIT) && m_type == CONTIOUS_MODEL) {
+                while ((uxReturn & BTN0_DOWN_BIT) && 1 == 1) {
                     uxReturn = xEventGroupWaitBits(button_event_group, BTN0_DOWN_BIT, pdFALSE, pdFALSE, 0);
                     // ESP_LOGI(TAG, "get btn 0 honlding");
 
-                    xSemaphoreTake(imu_mutex, portMAX_DELAY);
+                    xSemaphoreTake(mpu_mutex, portMAX_DELAY);
                     _getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
-                    xSemaphoreGive(imu_mutex);
+                    xSemaphoreGive(mpu_mutex);
                     ax_f = ax;
                     ay_f = ay;
                     az_f = az;
@@ -354,33 +358,33 @@ extern "C" void mpu6050(void *pvParameters)
                     gy_f = gy;
                     gz_f = gz;
 
-                    memcpy(imu_output_data + start_offset + (sample_size * 0 + tot_sample_size) * sizeof(float), (void *)&ax_f, sizeof(ax_f));
-                    memcpy(imu_output_data + start_offset + (sample_size * 1 + tot_sample_size) * sizeof(float), (void *)&ay_f, sizeof(ay_f));
-                    memcpy(imu_output_data + start_offset + (sample_size * 2 + tot_sample_size) * sizeof(float), (void *)&az_f, sizeof(az_f));
-                    memcpy(imu_output_data + start_offset + (sample_size * 3 + tot_sample_size) * sizeof(float), (void *)&gx_f, sizeof(gx_f));
-                    memcpy(imu_output_data + start_offset + (sample_size * 4 + tot_sample_size) * sizeof(float), (void *)&gy_f, sizeof(gy_f));
-                    memcpy(imu_output_data + start_offset + (sample_size * 5 + tot_sample_size) * sizeof(float), (void *)&gz_f, sizeof(gz_f));
+                    memcpy(imu_output_data + start_offset + (sample_size * 0 + tot_sample_size) * sizeof(float), (void*)&ax_f, sizeof(ax_f));
+                    memcpy(imu_output_data + start_offset + (sample_size * 1 + tot_sample_size) * sizeof(float), (void*)&ay_f, sizeof(ay_f));
+                    memcpy(imu_output_data + start_offset + (sample_size * 2 + tot_sample_size) * sizeof(float), (void*)&az_f, sizeof(az_f));
+                    memcpy(imu_output_data + start_offset + (sample_size * 3 + tot_sample_size) * sizeof(float), (void*)&gx_f, sizeof(gx_f));
+                    memcpy(imu_output_data + start_offset + (sample_size * 4 + tot_sample_size) * sizeof(float), (void*)&gy_f, sizeof(gy_f));
+                    memcpy(imu_output_data + start_offset + (sample_size * 5 + tot_sample_size) * sizeof(float), (void*)&gz_f, sizeof(gz_f));
 
                     tot_sample_size++;
                     if (tot_sample_size >= sample_size) {
-                        imu_output_data[0] = SEND_IMU_DATASET_DATA_PREFIX;
-                        memcpy(imu_output_data + 1, (void *)&tot_sample_size, sizeof(tot_sample_size));
-                        xMessageBufferSend(xMessageBufferToClient, imu_output_data, tot_sample_size * 24 + start_offset, portMAX_DELAY);
+                        // imu_output_data[0] = SEND_IMU_DATASET_DATA_PREFIX;
+                        memcpy(imu_output_data + 1, (void*)&tot_sample_size, sizeof(tot_sample_size));
+                        // xMessageBufferSend(xMessageBufferToClient, imu_output_data, tot_sample_size * 24 + start_offset, portMAX_DELAY);
                         tot_sample_size = 0;
                     }
                     vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(sample_tick));
                 }
                 ESP_LOGI(TAG, "exit btn 0 honlding");
-            } else if ((uxReturn & BTN1_DOWN_BIT) && m_type == COMMAND_MODEL) {
+            } else if ((uxReturn & BTN1_DOWN_BIT) && 1 == 1) {
                 // 指令模型
                 tot_sample_size = 0;
-                while ((uxReturn & BTN1_DOWN_BIT) && m_type == COMMAND_MODEL) {
+                while ((uxReturn & BTN1_DOWN_BIT) && 1 == 1) {
                     uxReturn = xEventGroupWaitBits(button_event_group, BTN1_DOWN_BIT, pdFALSE, pdFALSE, 0);
                     // ESP_LOGI(TAG, "get btn 1 honlding");
 
-                    xSemaphoreTake(imu_mutex, portMAX_DELAY);
+                    xSemaphoreTake(mpu_mutex, portMAX_DELAY);
                     _getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
-                    xSemaphoreGive(imu_mutex);
+                    xSemaphoreGive(mpu_mutex);
                     ax_f = ax;
                     ay_f = ay;
                     az_f = az;
@@ -388,12 +392,12 @@ extern "C" void mpu6050(void *pvParameters)
                     gy_f = gy;
                     gz_f = gz;
 
-                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 0 + tot_sample_size) * sizeof(float), (void *)&ax_f, sizeof(ax_f));
-                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 1 + tot_sample_size) * sizeof(float), (void *)&ay_f, sizeof(ay_f));
-                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 2 + tot_sample_size) * sizeof(float), (void *)&az_f, sizeof(az_f));
-                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 3 + tot_sample_size) * sizeof(float), (void *)&gx_f, sizeof(gx_f));
-                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 4 + tot_sample_size) * sizeof(float), (void *)&gy_f, sizeof(gy_f));
-                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 5 + tot_sample_size) * sizeof(float), (void *)&gz_f, sizeof(gz_f));
+                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 0 + tot_sample_size) * sizeof(float), (void*)&ax_f, sizeof(ax_f));
+                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 1 + tot_sample_size) * sizeof(float), (void*)&ay_f, sizeof(ay_f));
+                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 2 + tot_sample_size) * sizeof(float), (void*)&az_f, sizeof(az_f));
+                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 3 + tot_sample_size) * sizeof(float), (void*)&gx_f, sizeof(gx_f));
+                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 4 + tot_sample_size) * sizeof(float), (void*)&gy_f, sizeof(gy_f));
+                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 5 + tot_sample_size) * sizeof(float), (void*)&gz_f, sizeof(gz_f));
 
                     tot_sample_size++;
                     if (tot_sample_size >= MAX_INPUT_SIZE) {
@@ -410,10 +414,10 @@ extern "C" void mpu6050(void *pvParameters)
                 linear_interpolation(imu_input_data + MAX_INPUT_SIZE * sizeof(float) * 4, tot_sample_size, imu_output_data + start_offset + sample_size * sizeof(float) * 4, sample_size);
                 linear_interpolation(imu_input_data + MAX_INPUT_SIZE * sizeof(float) * 5, tot_sample_size, imu_output_data + start_offset + sample_size * sizeof(float) * 5, sample_size);
 
-                imu_output_data[0] = SEND_IMU_DATASET_DATA_PREFIX;
-                tot_sample_size    = sample_size;
-                memcpy(imu_output_data + 1, (void *)&tot_sample_size, sizeof(tot_sample_size));
-                int sent = xMessageBufferSend(xMessageBufferToClient, imu_output_data, tot_sample_size * 24 + start_offset, portMAX_DELAY);
+                imu_output_data[0] = 0;
+                tot_sample_size = sample_size;
+                memcpy(imu_output_data + 1, (void*)&tot_sample_size, sizeof(tot_sample_size));
+                // int sent = xMessageBufferSend(xMessageBufferToClient, imu_output_data, tot_sample_size * 24 + start_offset, portMAX_DELAY);
                 ESP_LOGI(TAG, "data sent: %d, real size: %d", sent, int(tot_sample_size * 24 + start_offset));
                 tot_sample_size = 0;
                 ESP_LOGI(TAG, "exit btn 1 honlding");

@@ -1,5 +1,5 @@
-#ifndef __HTTP_SERVICE_H__
-#define __HTTP_SERVICE_H__
+#ifndef __HANDLE_REQ_TASK_H__
+#define __HANDLE_REQ_TASK_H__
 
 #include "user_config.h"
 
@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-httpd_handle_t start_webserver();
+void handle_req_task(void *pvParameters);
 
 #ifdef __cplusplus
 }

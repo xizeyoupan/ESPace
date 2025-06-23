@@ -3,7 +3,7 @@
     "idf.openOcdConfigs": [
         "board/esp32-bridge.cfg"
     ],
-    "idf.portWin": "COM26",
+    "idf.portWin": "COM5",
     "idf.flashType": "UART",
     "files.associations": {
         "*.c": "c",
@@ -128,9 +128,22 @@
         "button_service.h": "c",
         "http_service.h": "c",
         "ws2812_service.h": "c",
-        "control_service.h": "c"
+        "control_service.h": "c",
+        "ws_task.h": "c",
+        "handle_req_task.h": "c",
+        "mpu_service.h": "c",
+        "string.h": "c",
+        "xstring": "c",
+        "xutility": "c",
+        "mpu_task.h": "c",
+        "xhash": "c",
+        "xmemory": "c",
+        "xtree": "c"
     },
     "idf.port": "/dev/ttyUSB0",
     "idf.espIdfPath": "/home/mio/esp/v5.2.3/esp-idf",
     "idf.toolsPath": "/home/mio/.espressif",
+    "idf.espIdfPathWin": "c:\\sdk\\esp-idf-v5.2.1",
+    "idf.toolsPathWin": "C:\\Users\\liuke\\.espressif",
+    "idf.pythonInstallPath": "C:\\Users\\liuke\\.espressif\\tools\\idf-python\\3.11.2\\python.exe",
 }

@@ -7,7 +7,10 @@
 extern "C" {
 #endif
 
-char *get_device_info(void);
+cJSON* get_device_info(void);
+cJSON* get_user_config_json(void);
+cJSON* get_task_state(void);
+void assign_user_config_from_json(const cJSON* data);
 
 #ifdef __cplusplus
 }
