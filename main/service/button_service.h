@@ -3,9 +3,6 @@
 
 #include "user_config.h"
 
-#define BUTTON0_GPIO_NUM      GPIO_NUM_18
-#define BUTTON1_GPIO_NUM      GPIO_NUM_0
-
 #define BTN0_DOWN_BIT         BIT0
 #define BTN0_UP_BIT           BIT1
 #define BTN0_SINGLE_CLICK_BIT BIT2

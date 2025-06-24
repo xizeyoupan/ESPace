@@ -30,6 +30,7 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t e
             }
 
             if (s_retry_num < user_config.wifi_connect_max_retry) {
+                ws2812_set_static_color(COLOR_WIFI_CONNECTING);
                 esp_wifi_connect();
                 s_retry_num++;
                 ESP_LOGI(TAG, "retry to connect to the AP, cnt = %d", s_retry_num);
@@ -38,6 +39,7 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t e
                 xEventGroupClearBits(s_wifi_event_group, WIFI_FAIL_BIT);
                 esp_wifi_stop();
                 start_ap_mode();
+                ws2812_set_static_color(COLOR_WIFI_ERROR);
             }
         }
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
@@ -45,6 +47,7 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t e
         ESP_LOGI(TAG, "Connected with IP Address:" IPSTR, IP2STR(&event->ip_info.ip));
         xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
         s_retry_num = 0;
+        ws2812_set_static_color(COLOR_WIFI_CONNECTED);
     }
 }
 

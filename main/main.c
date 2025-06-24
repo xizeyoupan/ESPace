@@ -34,8 +34,8 @@ void app_main(void)
     ESP_ERROR_CHECK(ret);
 
     load_user_config();
-    ws2812_init();
-    set_bg_color(COLOR_YELLOW);
+
+    xTaskCreatePinnedToCore(&ws2812_task, "ws2812_task", 1024 * 3, NULL, 5, NULL, 0);
 
     // Start wifi and web server
     xTaskCreatePinnedToCore(&wand_server_task, "wand_server", 1024 * 5, NULL, 15, NULL, 0);
@@ -50,18 +50,10 @@ void app_main(void)
     configASSERT(xMessageBufferReqRecv);
 
     xTaskCreatePinnedToCore(&mpu_task, "mpu_task", 1024 * 5, NULL, 10, NULL, 1);
-    vTaskDelay(pdMS_TO_TICKS(100));
-
-    // // Start imu task
-    // xTaskCreatePinnedToCore(&mpu6050, "IMU", 1024 * 8, NULL, 9, NULL, 1);
-
-    // xTaskCreatePinnedToCore(&status_task, "STAT", 1024 * 5, NULL, 4, NULL, 1);
 
     // xTaskCreatePinnedToCore(&CNN_task, "CNN", 1024 * 20, NULL, 10, NULL, 1);
 
-    // xTaskCreatePinnedToCore(&scan_button_task, "BUTTON", 1024 * 5, NULL, 5, NULL, 1);
-
-    // esp_log_set_vprintf(ws_vprintf);
+    xTaskCreatePinnedToCore(&scan_button_task, "button_task", 1024 * 3, NULL, 5, NULL, 1);
 
     // xTaskCreate(&play_mp3_task, "MP3", 1024 * 10, NULL, 5, NULL);
 

@@ -51,31 +51,20 @@ SemaphoreHandle_t mpu_mutex;
 // Accel & Gyro scale factor
 const double accel_sensitivity = 8192.0;
 const double gyro_sensitivity = 65.536;
-const int MAX_OUTPUT_SIZE = 500;
-const int MAX_INPUT_SIZE = 800;
-uint8_t imu_input_data[MAX_INPUT_SIZE * 24 + 128];
-uint8_t imu_output_data[MAX_OUTPUT_SIZE * 24 + 128];
 
-int sent = 0;
-
-void linear_interpolation(uint8_t* input, uint32_t input_size, uint8_t* output, uint32_t output_size)
+void linear_interpolation(const float* input, uint32_t input_size, float* output, uint32_t output_size)
 {
     for (uint32_t i = 0; i < output_size; i++) {
         float pos = (float)i * (input_size - 1) / (output_size - 1);
         uint32_t index = (uint32_t)pos;
         float weight = pos - index;
 
-        float data0, data1;
         if (index >= input_size - 1) {
-            memcpy((void*)&data0, input + (input_size - 1) * sizeof(float), sizeof(float));
-            memcpy(output + i * sizeof(float), (void*)&data0, sizeof(float));
+            output[i] = input[input_size - 1];
         } else {
-            memcpy((void*)&data0, input + index * sizeof(float), sizeof(float));
-            data0 = data0 * (1 - weight);
-            memcpy((void*)&data1, input + (index + 1) * sizeof(float), sizeof(float));
-            data1 = data1 * weight;
-            data0 = data0 + data1;
-            memcpy(output + i * sizeof(float), (void*)&data0, sizeof(float));
+            float data0 = input[index];
+            float data1 = input[index + 1];
+            output[i] = data0 * (1.0f - weight) + data1 * weight;
         }
     }
 }
@@ -115,18 +104,18 @@ void getRollPitch(double accX, double accY, double accZ, double* roll, double* p
 }
 
 // Set Kalman and gyro starting angle
-double ax, ay, az;
-double gx, gy, gz;
-double roll, pitch; // Roll and pitch are calculated using the accelerometer
-double kalAngleX, kalAngleY; // Calculated angle using a Kalman filter
+static double ax, ay, az;
+static double gx, gy, gz;
+static double roll, pitch; // Roll and pitch are calculated using the accelerometer
+static double kalAngleX, kalAngleY; // Calculated angle using a Kalman filter
 
-int64_t timer;
+static int64_t timer;
 
-int8_t initialized = 0;
-double initial_kalAngleX = 0.0;
-double initial_kalAngleY = 0.0;
+static int8_t initialized = 0;
+static double initial_kalAngleX = 0.0;
+static double initial_kalAngleY = 0.0;
 
-uint8_t i2c_installed = 0;
+static uint8_t i2c_installed = 0;
 
 void start_i2c(void)
 {
@@ -210,7 +199,7 @@ extern "C" void reset_imu()
     xSemaphoreGive(mpu_mutex);
 }
 
-void get_angle_and_m6(double* _roll, double* _pitch, double* _ax, double* _ay, double* _az, double* _gx, double* _gy, double* _gz)
+extern "C" void get_angle_and_m6(double* _roll, double* _pitch, double* _ax, double* _ay, double* _az, double* _gx, double* _gy, double* _gz)
 {
     xSemaphoreTake(mpu_mutex, portMAX_DELAY);
     _getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
@@ -281,151 +270,8 @@ void get_angle_and_m6(double* _roll, double* _pitch, double* _ax, double* _ay, d
     *_gz = gz;
 }
 
-void mpu_mutex_init()
+extern "C" void mpu_mutex_init()
 {
     mpu_mutex = xSemaphoreCreateMutex();
     configASSERT(mpu_mutex);
-}
-
-extern "C" void mpu6050(void* pvParameters)
-{
-    BaseType_t core_id = xPortGetCoreID(); // 返回当前任务所在的核心 ID
-    ESP_LOGI(TAG, "Task is running on core %d.", core_id);
-
-    reset_imu();
-
-    float ax_f = ax;
-    float ay_f = ay;
-    float az_f = az;
-    float gx_f = gx;
-    float gy_f = gy;
-    float gz_f = gz;
-
-    while (1) {
-        vTaskDelay(pdMS_TO_TICKS(10));
-
-        if (0) {
-
-            // ESP_LOGI(TAG, "mpu data: %f %f %f - %f %f %f", ax, ay, az, gx, gy, gz);
-
-            ax_f = ax;
-            ay_f = ay;
-            az_f = az;
-            gx_f = gx;
-            gy_f = gy;
-            gz_f = gz;
-
-            // memset(imu_input_data, 0, sizeof(imu_input_data));
-            // memcpy(imu_input_data + 1, (void*)&_roll, sizeof(_roll));
-            // memcpy(imu_input_data + 5, (void*)&_pitch, sizeof(_pitch));
-            // memcpy(imu_input_data + 9, (void*)&ax_f, sizeof(ax_f));
-            // memcpy(imu_input_data + 13, (void*)&ay_f, sizeof(ay_f));
-            // memcpy(imu_input_data + 17, (void*)&az_f, sizeof(az_f));
-            // memcpy(imu_input_data + 21, (void*)&gx_f, sizeof(gx_f));
-            // memcpy(imu_input_data + 25, (void*)&gy_f, sizeof(gy_f));
-            // memcpy(imu_input_data + 29, (void*)&gz_f, sizeof(gz_f));
-            // // xMessageBufferSend(xMessageBufferToClient, imu_input_data, 33, 0);
-            // vTaskDelay(pdMS_TO_TICKS(125));
-        } else {
-
-            uint16_t sample_size = 0;
-            uint16_t sample_tick = 0;
-
-            if (sample_size == 0 || sample_tick == 0) {
-                continue;
-            }
-
-            EventBits_t uxReturn;
-            uint32_t tot_sample_size = 0;
-            const uint32_t start_offset = 5;
-            TickType_t xLastWakeTime = xTaskGetTickCount();
-
-            uxReturn = xEventGroupWaitBits(button_event_group, BTN0_DOWN_BIT | BTN1_DOWN_BIT, pdFALSE, pdFALSE, 0);
-            if ((uxReturn & BTN0_DOWN_BIT) && 1 == 1) {
-                // 持续模型
-                tot_sample_size = 0;
-                while ((uxReturn & BTN0_DOWN_BIT) && 1 == 1) {
-                    uxReturn = xEventGroupWaitBits(button_event_group, BTN0_DOWN_BIT, pdFALSE, pdFALSE, 0);
-                    // ESP_LOGI(TAG, "get btn 0 honlding");
-
-                    xSemaphoreTake(mpu_mutex, portMAX_DELAY);
-                    _getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
-                    xSemaphoreGive(mpu_mutex);
-                    ax_f = ax;
-                    ay_f = ay;
-                    az_f = az;
-                    gx_f = gx;
-                    gy_f = gy;
-                    gz_f = gz;
-
-                    memcpy(imu_output_data + start_offset + (sample_size * 0 + tot_sample_size) * sizeof(float), (void*)&ax_f, sizeof(ax_f));
-                    memcpy(imu_output_data + start_offset + (sample_size * 1 + tot_sample_size) * sizeof(float), (void*)&ay_f, sizeof(ay_f));
-                    memcpy(imu_output_data + start_offset + (sample_size * 2 + tot_sample_size) * sizeof(float), (void*)&az_f, sizeof(az_f));
-                    memcpy(imu_output_data + start_offset + (sample_size * 3 + tot_sample_size) * sizeof(float), (void*)&gx_f, sizeof(gx_f));
-                    memcpy(imu_output_data + start_offset + (sample_size * 4 + tot_sample_size) * sizeof(float), (void*)&gy_f, sizeof(gy_f));
-                    memcpy(imu_output_data + start_offset + (sample_size * 5 + tot_sample_size) * sizeof(float), (void*)&gz_f, sizeof(gz_f));
-
-                    tot_sample_size++;
-                    if (tot_sample_size >= sample_size) {
-                        // imu_output_data[0] = SEND_IMU_DATASET_DATA_PREFIX;
-                        memcpy(imu_output_data + 1, (void*)&tot_sample_size, sizeof(tot_sample_size));
-                        // xMessageBufferSend(xMessageBufferToClient, imu_output_data, tot_sample_size * 24 + start_offset, portMAX_DELAY);
-                        tot_sample_size = 0;
-                    }
-                    vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(sample_tick));
-                }
-                ESP_LOGI(TAG, "exit btn 0 honlding");
-            } else if ((uxReturn & BTN1_DOWN_BIT) && 1 == 1) {
-                // 指令模型
-                tot_sample_size = 0;
-                while ((uxReturn & BTN1_DOWN_BIT) && 1 == 1) {
-                    uxReturn = xEventGroupWaitBits(button_event_group, BTN1_DOWN_BIT, pdFALSE, pdFALSE, 0);
-                    // ESP_LOGI(TAG, "get btn 1 honlding");
-
-                    xSemaphoreTake(mpu_mutex, portMAX_DELAY);
-                    _getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
-                    xSemaphoreGive(mpu_mutex);
-                    ax_f = ax;
-                    ay_f = ay;
-                    az_f = az;
-                    gx_f = gx;
-                    gy_f = gy;
-                    gz_f = gz;
-
-                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 0 + tot_sample_size) * sizeof(float), (void*)&ax_f, sizeof(ax_f));
-                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 1 + tot_sample_size) * sizeof(float), (void*)&ay_f, sizeof(ay_f));
-                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 2 + tot_sample_size) * sizeof(float), (void*)&az_f, sizeof(az_f));
-                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 3 + tot_sample_size) * sizeof(float), (void*)&gx_f, sizeof(gx_f));
-                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 4 + tot_sample_size) * sizeof(float), (void*)&gy_f, sizeof(gy_f));
-                    memcpy(imu_input_data + (MAX_INPUT_SIZE * 5 + tot_sample_size) * sizeof(float), (void*)&gz_f, sizeof(gz_f));
-
-                    tot_sample_size++;
-                    if (tot_sample_size >= MAX_INPUT_SIZE) {
-                        ws2812_blink(COLOR_RED);
-                        break;
-                    }
-                    vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(sample_tick));
-                }
-
-                linear_interpolation(imu_input_data + MAX_INPUT_SIZE * sizeof(float) * 0, tot_sample_size, imu_output_data + start_offset + sample_size * sizeof(float) * 0, sample_size);
-                linear_interpolation(imu_input_data + MAX_INPUT_SIZE * sizeof(float) * 1, tot_sample_size, imu_output_data + start_offset + sample_size * sizeof(float) * 1, sample_size);
-                linear_interpolation(imu_input_data + MAX_INPUT_SIZE * sizeof(float) * 2, tot_sample_size, imu_output_data + start_offset + sample_size * sizeof(float) * 2, sample_size);
-                linear_interpolation(imu_input_data + MAX_INPUT_SIZE * sizeof(float) * 3, tot_sample_size, imu_output_data + start_offset + sample_size * sizeof(float) * 3, sample_size);
-                linear_interpolation(imu_input_data + MAX_INPUT_SIZE * sizeof(float) * 4, tot_sample_size, imu_output_data + start_offset + sample_size * sizeof(float) * 4, sample_size);
-                linear_interpolation(imu_input_data + MAX_INPUT_SIZE * sizeof(float) * 5, tot_sample_size, imu_output_data + start_offset + sample_size * sizeof(float) * 5, sample_size);
-
-                imu_output_data[0] = 0;
-                tot_sample_size = sample_size;
-                memcpy(imu_output_data + 1, (void*)&tot_sample_size, sizeof(tot_sample_size));
-                // int sent = xMessageBufferSend(xMessageBufferToClient, imu_output_data, tot_sample_size * 24 + start_offset, portMAX_DELAY);
-                ESP_LOGI(TAG, "data sent: %d, real size: %d", sent, int(tot_sample_size * 24 + start_offset));
-                tot_sample_size = 0;
-                ESP_LOGI(TAG, "exit btn 1 honlding");
-            }
-            vTaskDelay(pdMS_TO_TICKS(pdMS_TO_TICKS(1)));
-        }
-    }
-
-    // Never reach here
-    vTaskDelete(NULL);
 }

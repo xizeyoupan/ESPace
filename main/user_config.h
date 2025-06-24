@@ -17,6 +17,7 @@
 #include "esp_ota_ops.h"
 #include "esp_system.h"
 #include "esp_task_wdt.h"
+#include "esp_timer.h"
 #include "esp_wifi.h"
 
 #include "driver/gpio.h"
@@ -46,22 +47,12 @@
 #include "task/play_mp3.h"
 #include "task/status_task.h"
 #include "task/wand_server_task.h"
+#include "task/ws2812_task.h"
 #include "task/ws_task.h"
 
 #include "CNN.h"
 #include "nvs_flash.h"
 #include "nvs_util.h"
-
-typedef enum {
-    COLOR_RED = 0xff0000,
-    COLOR_GREEN = 0x00ff00,
-    COLOR_BLUE = 0x0000ff,
-    COLOR_YELLOW = 0xFFFF00,
-    COLOR_MAGENTA = 0xFF00FF,
-    COLOR_CYAN = 0x00FFFF,
-    COLOR_WHITE = 0xFFFFFF,
-    COLOR_NONE = 0x000000,
-} color_enum;
 
 #define SW_VERSION "v0.0.1"
 #define USER_CONFIG_NVS_NAMESPACE "user_config"

@@ -138,7 +138,15 @@
         "mpu_task.h": "c",
         "xhash": "c",
         "xmemory": "c",
-        "xtree": "c"
+        "xtree": "c",
+        "ws2812_task.h": "c",
+        "crypto.h": "c",
+        "base64.h": "c",
+        "xiosbase": "c",
+        "xlocale": "c",
+        "xlocbuf": "c",
+        "xlocmon": "c",
+        "xloctime": "c"
     },
     "idf.port": "/dev/ttyUSB0",
     "idf.espIdfPath": "/home/mio/esp/v5.2.3/esp-idf",

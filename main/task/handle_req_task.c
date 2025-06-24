@@ -4,6 +4,8 @@ static const char* TAG = "HANDLE_REQ_TASK";
 
 extern MessageBufferHandle_t xMessageBufferReqSend;
 extern user_config_t user_config;
+extern mpu_command_t received_command;
+extern EventGroupHandle_t x_mpu_event_group;
 MessageBufferHandle_t xMessageBufferReqRecv;
 
 void handle_req_task(void* pvParameters)
@@ -137,6 +139,22 @@ void handle_req_task(void* pvParameters)
             cJSON_AddItemToObject(resp_payload, "data", imu_data);
         } else if (strcmp(type->valuestring, "reset_imu") == 0) {
             reset_imu();
+        } else if (strcmp(type->valuestring, "get_mpu_data_row") == 0) {
+            const cJSON* data = cJSON_GetObjectItem(payload, "data");
+            const cJSON* sample_size = cJSON_GetObjectItem(data, "sample_size");
+            const cJSON* sample_tick = cJSON_GetObjectItem(data, "sample_tick");
+            const cJSON* model_type = cJSON_GetObjectItem(data, "type");
+
+            memset(&received_command, 0, sizeof(received_command));
+            received_command.type = MPU_COMMAND_TYPE_GET_ROW;
+            received_command.model_type = model_type->valuedouble;
+            received_command.sample_size = sample_size->valuedouble;
+            received_command.sample_tick = sample_tick->valuedouble;
+            received_command.need_predict = 0;
+
+            xEventGroupSetBits(x_mpu_event_group, MPU_SAMPLING_START_BIT);
+        } else if (strcmp(type->valuestring, "get_mpu_data_row_stop") == 0) {
+            xEventGroupSetBits(x_mpu_event_group, MPU_SAMPLING_STOP_BIT);
         }
 
         resp_string = cJSON_Print(resp_json);

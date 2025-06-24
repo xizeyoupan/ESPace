@@ -66,8 +66,8 @@ void reset_user_config()
     user_config.ws_recv_buf_size = 1024;
     user_config.msg_buf_recv_size = 2 * 1024;
 
-    user_config.ws_send_buf_size = 10 * 1024;
-    user_config.msg_buf_send_size = 30 * 1024;
+    user_config.ws_send_buf_size = 30 * 1024;
+    user_config.msg_buf_send_size = 60 * 1024;
 
     user_config.button_period_ms = 3000;
 

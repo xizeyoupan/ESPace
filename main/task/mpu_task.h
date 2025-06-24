@@ -10,10 +10,10 @@ extern "C" {
 void mpu_task(void* pvParameters);
 
 typedef enum {
+    MPU_COMMAND_TYPE_CLEAR,
     MPU_COMMAND_TYPE_GET_ANGLE,
     MPU_COMMAND_TYPE_GET_ROW,
     MPU_COMMAND_TYPE_RESET_IMU,
-    MPU_COMMAND_TYPE_CLEAR,
 } mpu_command_type_enum;
 
 typedef enum {
@@ -21,6 +21,7 @@ typedef enum {
     MODEL_TYPE_PERIODIC,
 } model_type_enum;
 
+#pragma pack(1)
 typedef struct
 {
     char caller[32]; // 调用者
@@ -30,6 +31,11 @@ typedef struct
     uint32_t sample_tick; // 采样间隔
     uint8_t need_predict; // 是否需要预测
 } mpu_command_t;
+
+#define MPU_SAMPLING_START_BIT BIT0
+#define MPU_SAMPLING_STOP_BIT BIT1
+#define MPU_PREDICT_START_BIT BIT2
+#define MPU_PREDICT_STOP_BIT BIT3
 
 #ifdef __cplusplus
 }
