@@ -32,10 +32,10 @@ typedef struct
     uint8_t need_predict; // 是否需要预测
 } mpu_command_t;
 
-#define MPU_SAMPLING_START_BIT BIT0
-#define MPU_SAMPLING_STOP_BIT BIT1
-#define MPU_PREDICT_START_BIT BIT2
-#define MPU_PREDICT_STOP_BIT BIT3
+#define MPU_SAMPLING_READY_BIT BIT0
+#define MPU_SAMPLING_UNREADY_BIT BIT1
+#define MPU_SAMPLING_START_BIT BIT2
+#define MPU_SAMPLING_STOP_BIT BIT3
 
 #ifdef __cplusplus
 }

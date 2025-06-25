@@ -152,9 +152,9 @@ void handle_req_task(void* pvParameters)
             received_command.sample_tick = sample_tick->valuedouble;
             received_command.need_predict = 0;
 
-            xEventGroupSetBits(x_mpu_event_group, MPU_SAMPLING_START_BIT);
+            xEventGroupSetBits(x_mpu_event_group, MPU_SAMPLING_READY_BIT);
         } else if (strcmp(type->valuestring, "get_mpu_data_row_stop") == 0) {
-            xEventGroupSetBits(x_mpu_event_group, MPU_SAMPLING_STOP_BIT);
+            xEventGroupSetBits(x_mpu_event_group, MPU_SAMPLING_UNREADY_BIT);
         }
 
         resp_string = cJSON_Print(resp_json);

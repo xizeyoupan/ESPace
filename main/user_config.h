@@ -94,7 +94,7 @@ typedef struct
     uint16_t button_period_ms;
 
     int mpu_command_buf_size;
-    int mpu_buf_out_size;
+    int mpu_one_shot_max_sample_size;
     int mpu_buf_out_to_cnn_size;
 
 } user_config_t;

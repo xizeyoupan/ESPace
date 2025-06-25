@@ -146,7 +146,8 @@
         "xlocale": "c",
         "xlocbuf": "c",
         "xlocmon": "c",
-        "xloctime": "c"
+        "xloctime": "c",
+        "xtr1common": "c"
     },
     "idf.port": "/dev/ttyUSB0",
     "idf.espIdfPath": "/home/mio/esp/v5.2.3/esp-idf",

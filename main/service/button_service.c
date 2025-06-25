@@ -48,12 +48,12 @@ void btn_press_down_up_handler(void* btn)
         switch (((Button*)btn)->event) {
         case PRESS_DOWN:
             xEventGroupSetBits(button_event_group, BTN0_DOWN_BIT);
-            xEventGroupSetBits(x_mpu_event_group, MPU_PREDICT_START_BIT);
+            xEventGroupSetBits(x_mpu_event_group, MPU_SAMPLING_START_BIT);
             // ESP_LOGI(TAG, "btn 0 press down");
             break;
         case PRESS_UP:
             xEventGroupClearBits(button_event_group, BTN0_DOWN_BIT);
-            xEventGroupSetBits(x_mpu_event_group, MPU_PREDICT_STOP_BIT);
+            xEventGroupSetBits(x_mpu_event_group, MPU_SAMPLING_STOP_BIT);
             // ESP_LOGI(TAG, "btn 0 press up");
             break;
         default:

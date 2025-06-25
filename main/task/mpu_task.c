@@ -11,12 +11,27 @@ EventGroupHandle_t x_mpu_event_group;
 
 extern SemaphoreHandle_t mpu_mutex;
 const int SAMPLE_START_OFFSET = 2;
-int sample_offset = SAMPLE_START_OFFSET;
+int sample_offset = 0;
 static double ax, ay, az, gx, gy, gz;
 static float ax_f, ay_f, az_f, gx_f, gy_f, gz_f;
 
 float* imu_data = NULL;
+float* imu_data_oneshot = NULL;
 int total_bytes = 0;
+
+static char err_json[256];
+
+static void send_imu_data_to_ws()
+{
+    imu_data[0] = 0;
+    imu_data[1] = received_command.sample_size;
+    size_t bytes_sent = xMessageBufferSend(xMessageBufferReqSend, imu_data, total_bytes, portMAX_DELAY);
+    if (bytes_sent != total_bytes) {
+        ESP_LOGE(TAG, "Failed to send imu_data to ws buffer, sent %d bytes, expected %d bytes.", bytes_sent, total_bytes);
+    } else {
+        ESP_LOGI(TAG, "Sent imu data to ws buffer, size: %d bytes", total_bytes);
+    }
+}
 
 static void mpu_periodic_timer_callback(void* arg)
 {
@@ -39,30 +54,39 @@ static void mpu_periodic_timer_callback(void* arg)
     gy_f = gy;
     gz_f = gz;
 
-    imu_data[0 * received_command.sample_size + sample_offset] = ax_f;
-    imu_data[1 * received_command.sample_size + sample_offset] = ay_f;
-    imu_data[2 * received_command.sample_size + sample_offset] = az_f;
-    imu_data[3 * received_command.sample_size + sample_offset] = gx_f;
-    imu_data[4 * received_command.sample_size + sample_offset] = gy_f;
-    imu_data[5 * received_command.sample_size + sample_offset] = gz_f;
-    sample_offset++;
-    if (sample_offset >= received_command.sample_size + SAMPLE_START_OFFSET) {
-        sample_offset = SAMPLE_START_OFFSET;
-
-        if (received_command.need_predict == 0) {
-            if (received_command.model_type == MODEL_TYPE_ONESHOT) {
-
-            } else if (received_command.model_type == MODEL_TYPE_PERIODIC) {
-                imu_data[0] = 0;
-                imu_data[1] = received_command.sample_size;
-                size_t bytes_sent = xMessageBufferSend(xMessageBufferReqSend, imu_data, total_bytes, portMAX_DELAY);
-                if (bytes_sent != total_bytes) {
-                    ESP_LOGE(TAG, "Failed to send imu_data to ws buffer, sent %d bytes, expected %d bytes.", bytes_sent, total_bytes);
-                } else {
-                    ESP_LOGI(TAG, "Sent imu data to ws buffer, size: %d bytes", total_bytes);
-                }
+    if (received_command.model_type == MODEL_TYPE_PERIODIC) {
+        imu_data[0 * received_command.sample_size + sample_offset] = ax_f;
+        imu_data[1 * received_command.sample_size + sample_offset] = ay_f;
+        imu_data[2 * received_command.sample_size + sample_offset] = az_f;
+        imu_data[3 * received_command.sample_size + sample_offset] = gx_f;
+        imu_data[4 * received_command.sample_size + sample_offset] = gy_f;
+        imu_data[5 * received_command.sample_size + sample_offset] = gz_f;
+        sample_offset++;
+        if (sample_offset >= received_command.sample_size + SAMPLE_START_OFFSET) {
+            sample_offset = SAMPLE_START_OFFSET;
+            if (received_command.need_predict == 0) {
+                send_imu_data_to_ws();
+            } else {
             }
         }
+
+    } else if (received_command.model_type == MODEL_TYPE_ONESHOT) {
+        if (sample_offset >= user_config.mpu_one_shot_max_sample_size + SAMPLE_START_OFFSET) {
+            ESP_LOGE(TAG, "Reached maximum one-shot sample size, quit.");
+            sample_offset = 0;
+            xEventGroupSetBits(x_mpu_event_group, MPU_SAMPLING_STOP_BIT);
+            strcpy(err_json, "{ \"type\": \"error\", \"requestId\": \"req_error\", \"error\": \"error.eached_maximum_oneshot_sample_size\" }");
+            xMessageBufferSend(xMessageBufferReqSend, err_json, strlen(err_json), portMAX_DELAY);
+            return;
+        }
+
+        imu_data_oneshot[0 * user_config.mpu_one_shot_max_sample_size + sample_offset] = ax_f;
+        imu_data_oneshot[1 * user_config.mpu_one_shot_max_sample_size + sample_offset] = ay_f;
+        imu_data_oneshot[2 * user_config.mpu_one_shot_max_sample_size + sample_offset] = az_f;
+        imu_data_oneshot[3 * user_config.mpu_one_shot_max_sample_size + sample_offset] = gx_f;
+        imu_data_oneshot[4 * user_config.mpu_one_shot_max_sample_size + sample_offset] = gy_f;
+        imu_data_oneshot[5 * user_config.mpu_one_shot_max_sample_size + sample_offset] = gz_f;
+        sample_offset++;
     }
 }
 
@@ -72,10 +96,8 @@ void mpu_task(void* pvParameters)
     ESP_LOGI(TAG, "Task is running on core %d.", core_id);
 
     x_mpu_event_group = xEventGroupCreate();
-    // xMessageBufferMPUCommand = xMessageBufferCreate(user_config.mpu_command_buf_size);
     xMessageBufferMPUOut = xMessageBufferCreate(user_config.msg_buf_recv_size);
     xMessageBufferMPUOut2CNN = xMessageBufferCreate(user_config.msg_buf_recv_size);
-    // configASSERT(xMessageBufferMPUCommand);
     configASSERT(xMessageBufferMPUOut);
     configASSERT(xMessageBufferMPUOut2CNN);
 
@@ -89,20 +111,28 @@ void mpu_task(void* pvParameters)
     mpu_mutex_init();
     reset_imu();
 
+    int imu_data_oneshot_size = user_config.mpu_one_shot_max_sample_size * 6 * sizeof(float) + 16;
+    imu_data_oneshot = malloc(imu_data_oneshot_size);
+    if (imu_data_oneshot == NULL) {
+        ESP_LOGE(TAG, "Failed to allocate memory for imu_data_oneshot, size: %d bytes", imu_data_oneshot_size);
+        vTaskDelete(NULL);
+    }
+
     while (1) {
         EventBits_t uxBits = xEventGroupWaitBits(x_mpu_event_group,
-            MPU_SAMPLING_START_BIT | MPU_SAMPLING_STOP_BIT | MPU_PREDICT_START_BIT | MPU_PREDICT_STOP_BIT,
+            MPU_SAMPLING_READY_BIT | MPU_SAMPLING_UNREADY_BIT | MPU_SAMPLING_START_BIT | MPU_SAMPLING_STOP_BIT,
             pdTRUE, pdFALSE, portMAX_DELAY);
-        if (uxBits & MPU_SAMPLING_START_BIT) {
-            ESP_LOGI(TAG, "Sampling event triggered.");
+        if (uxBits & MPU_SAMPLING_READY_BIT) {
+            ESP_LOGI(TAG, "Sampling ready event triggered.");
             ws2812_blink(COLOR_MPU_SAMPLING);
-        } else if (uxBits & MPU_SAMPLING_STOP_BIT) {
-            ESP_LOGI(TAG, "Sampling stop event triggered.");
+        } else if (uxBits & MPU_SAMPLING_UNREADY_BIT) {
+            ESP_LOGI(TAG, "Sampling unready event triggered.");
             memset(&received_command, 0, sizeof(received_command));
+            sample_offset = 0;
             ws2812_set_static_color(COLOR_MPU_SAMPLING_STOP);
-        } else if (uxBits & MPU_PREDICT_START_BIT) {
-            ESP_LOGI(TAG, "Predict start event triggered.");
-            if (received_command.model_type > 0 && received_command.sample_size > 0 && received_command.sample_tick > 0) {
+        } else if (uxBits & MPU_SAMPLING_START_BIT) {
+            ESP_LOGI(TAG, "Sampling start event triggered.");
+            if (received_command.model_type >= 0 && received_command.sample_size > 0 && received_command.sample_tick > 0) {
                 sample_offset = SAMPLE_START_OFFSET;
                 if (imu_data != NULL) {
                     free(imu_data);
@@ -120,12 +150,24 @@ void mpu_task(void* pvParameters)
             } else {
                 ESP_LOGE(TAG, "Invalid or empty command parameters.");
             }
-        } else if (uxBits & MPU_PREDICT_STOP_BIT) {
-            ESP_LOGI(TAG, "Predict stop event triggered.");
+        } else if (uxBits & MPU_SAMPLING_STOP_BIT) {
+            ESP_LOGI(TAG, "Sampling stop event triggered.");
             if (esp_timer_is_active(mpu_periodic_timer)) {
                 ESP_ERROR_CHECK(esp_timer_stop(mpu_periodic_timer));
             } else {
                 ESP_LOGI(TAG, "MPU periodic timer is not running.");
+            }
+
+            if (received_command.model_type == MODEL_TYPE_ONESHOT && sample_offset > SAMPLE_START_OFFSET) {
+                int real_size = sample_offset - SAMPLE_START_OFFSET;
+                ESP_LOGI(TAG, "Finish one-shot data sample, real sample size: %d, expected:%lu",
+                    real_size, received_command.sample_size);
+                for (int i = 0; i < 6; i++) {
+                    linear_interpolation(i * user_config.mpu_one_shot_max_sample_size + imu_data_oneshot + SAMPLE_START_OFFSET, real_size,
+                        i * received_command.sample_size + imu_data + SAMPLE_START_OFFSET, received_command.sample_size);
+                }
+
+                send_imu_data_to_ws();
             }
         }
     }

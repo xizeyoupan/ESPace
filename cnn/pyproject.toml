@@ -1,29 +1,15 @@
-[tool.poetry]
+[project]
 name = "cnn"
 version = "0.1.0"
-description = ""
-authors = ["xizeyoupan <44920131+xizeyoupan@users.noreply.github.com>"]
+description = "Default template for PDM package"
+authors = [
+    {name = "xizeyoupan", email = "44920131+xizeyoupan@users.noreply.github.com"},
+]
+dependencies = ["tensorflowjs>=4.22.0"]
+requires-python = "==3.13.*"
 readme = "README.md"
-package-mode = false
+license = {text = "MIT"}
 
-[tool.poetry.dependencies]
-python = "^3.11"
-pyserial = "^3.5"
-torch = "^2.3.0"
-torchvision = "^0.18.0"
-torchaudio = "^2.3.0"
-pandas = "^2.2.2"
-matplotlib = "^3.8.4"
-onnxsim = "^0.4.36"
-onnxruntime = "^1.18.0"
-onnx2tf = "^1.22.3"
-onnx = "^1.16.1"
-tensorflow = "^2.16.1"
-tf-keras = "^2.16.0"
-onnx-graphsurgeon = "^0.5.2"
-psutil = "^5.9.8"
-sng4onnx = "^1.0.4"
 
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+[tool.pdm]
+distribution = false
