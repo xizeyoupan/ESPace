@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tfjs2tflite</title>
+    <style>
+        body {
+            font-family: "Segoe UI", sans-serif;
+            background-color: #f3f4f6;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #111827;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #374151;
+            font-size: 14px;
+        }
+
+        input[type="password"],
+        input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            background-color: #f9fafb;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            border-color: #2563eb;
+            outline: none;
+        }
+
+        button {
+            width: 100%;
+            background-color: #2563eb;
+            color: white;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #1e40af;
+        }
+
+        .message {
+            margin-top: 15px;
+            text-align: center;
+            font-size: 14px;
+            color: #dc2626;
+            display: none;
+        }
+
+        footer {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #6b7280;
+            text-align: center;
+        }
+
+        footer a {
+            color: #2563eb;
+            text-decoration: none;
+            margin: 0 5px;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        .loading-spinner {
+            border: 2px solid #e5e7eb;
+            border-top: 2px solid #2563eb;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            animation: spin 0.6s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-left: 8px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .version {
+            text-align: center;
+            margin-top: -10px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: #6b7280;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h2>TFJS LAYERS 2 TFLITE</h2>
+        <p class="version">v1.0.0</p>
+        <form id="uploadForm" enctype="multipart/form-data">
+            <label for="key">Secret Key</label>
+            <input type="password" name="key" id="key" required />
+
+            <label for="json_file">Select JSON File</label>
+            <input type="file" name="json_file" id="json_file" accept=".json" required />
+
+            <label for="bin_file">Select BIN File</label>
+            <input type="file" name="bin_file" id="bin_file" accept=".bin" required />
+
+            <button type="submit" id="submitBtn">
+                Upload and Process <span id="spinner" class="loading-spinner" style="display:none;"></span>
+            </button>
+        </form>
+
+        <div id="message" class="message"></div>
+    </div>
+
+    <footer>
+        Made by
+        <a href="https://github.com/xizeyoupan" target="_blank">xizeyoupan</a> ·
+        <a href="https://space.bilibili.com/3546786106968124" target="_blank">扑腾小卜萝</a>
+    </footer>
+
+    <script>
+        const form = document.getElementById('uploadForm');
+        const messageBox = document.getElementById('message');
+        const submitBtn = document.getElementById('submitBtn');
+        const spinner = document.getElementById('spinner');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            messageBox.style.display = 'none';
+
+            const jsonInput = document.getElementById('json_file');
+            const binInput = document.getElementById('bin_file');
+            const jsonName = jsonInput.files[0]?.name || "";
+            const binName = binInput.files[0]?.name || "";
+
+            if (/\s/.test(jsonName) || /\s/.test(binName)) {
+                messageBox.textContent = "❌ 文件名不能包含空格，请重命名后重新选择。";
+                messageBox.style.display = 'block';
+                return;
+            }
+
+            // 👉 开始加载动画
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.6';
+            spinner.style.display = 'inline-block';
+
+            const formData = new FormData(form);
+
+            try {
+                const res = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!res.ok) {
+                    const msg = await res.text();
+                    messageBox.textContent = "❌ " + msg;
+                    messageBox.style.display = 'block';
+                } else {
+                    const blob = await res.blob();
+                    const disposition = res.headers.get("Content-Disposition");
+                    let filename = "download.bin";
+
+                    if (disposition) {
+
+                        // 优先匹配 filename*=UTF-8''...
+                        const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+                        if (utf8Match && utf8Match[1]) {
+                            filename = decodeURIComponent(utf8Match[1]);
+                        } else {
+                            // 其次匹配 filename="xxx"
+                            const asciiMatch = disposition.match(/filename="?([^"]+)"?/);
+                            if (asciiMatch && asciiMatch[1]) {
+                                filename = asciiMatch[1];
+                            }
+                        }
+                    }
+
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                }
+            } catch (err) {
+                messageBox.textContent = "❌ Upload failed: " + err.message;
+                messageBox.style.display = 'block';
+            } finally {
+                // 👉 结束加载动画
+                submitBtn.disabled = false;
+                submitBtn.style.opacity = '1';
+                spinner.style.display = 'none';
+            }
+        });
+
+    </script>
+</body>
+
+</html>
