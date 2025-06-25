@@ -147,7 +147,10 @@
         "xlocbuf": "c",
         "xlocmon": "c",
         "xloctime": "c",
-        "xtr1common": "c"
+        "xtr1common": "c",
+        "littlefs_service.h": "c",
+        "dirent.h": "c",
+        "stat.h": "c"
     },
     "idf.port": "/dev/ttyUSB0",
     "idf.espIdfPath": "/home/mio/esp/v5.2.3/esp-idf",

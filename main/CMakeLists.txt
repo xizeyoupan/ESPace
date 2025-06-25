@@ -15,6 +15,7 @@ idf_component_register(
     "./service/device_service.c"
     "./service/button_service.c"
     "./service/http_service.c"
+    "./service/littlefs_service.c"
     "./service/ws2812_service.c"
     "./service/mpu_service.cpp"
     INCLUDE_DIRS
@@ -22,3 +23,5 @@ idf_component_register(
     "./service"
     "./task"
 )
+
+# littlefs_create_partition_image(models ../flash_data FLASH_IN_PROJECT)

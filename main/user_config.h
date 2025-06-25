@@ -4,6 +4,9 @@
 #include "math.h"
 #include "string.h"
 
+#include <dirent.h>
+#include <sys/stat.h>
+
 #include "cJSON.h"
 #include "mdns.h"
 #include "multi_button.h"
@@ -13,6 +16,7 @@
 #include "esp_event.h"
 #include "esp_heap_caps.h"
 #include "esp_http_server.h"
+#include "esp_littlefs.h"
 #include "esp_log.h"
 #include "esp_ota_ops.h"
 #include "esp_system.h"
@@ -37,6 +41,7 @@
 #include "service/button_service.h"
 #include "service/device_service.h"
 #include "service/http_service.h"
+#include "service/littlefs_service.h"
 #include "service/mpu_service.h"
 #include "service/wifi_service.h"
 #include "service/ws2812_service.h"

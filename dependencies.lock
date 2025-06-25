@@ -56,22 +56,21 @@ dependencies:
       type: service
     version: 1.8.0
   espressif/nghttp:
-    component_hash: c52b83cc3d1083ae669751534ea4f7445974b86d91d49a5273bdb0fbf87f34d6
+    component_hash: 32e513409ddce0000990ec74b0711f535462726236d72578cd70498e6bd66dc3
     dependencies:
     - name: idf
-      registry_url: https://components.espressif.com
       require: private
       version: '>=5.0'
     source:
       registry_url: https://components.espressif.com/
       type: service
-    version: 1.62.1
+    version: 1.65.0
   idf:
     source:
       type: idf
     version: 5.2.3
   joltwallet/littlefs:
-    component_hash: 8dd83825446dfdc7c22bcfa363731d24afc7bd0c8b23ede99359112cfe239e9d
+    component_hash: fe3d04a59a4c370408b0e0b69d9096c06371b9ee12ad8e06b9d52ac63ab1570c
     dependencies:
     - name: idf
       require: private
@@ -79,7 +78,7 @@ dependencies:
     source:
       registry_url: https://components.espressif.com/
       type: service
-    version: 1.18.1
+    version: 1.20.0
 direct_dependencies:
 - espressif/esp-dsp
 - espressif/esp-tflite-micro
@@ -88,6 +87,6 @@ direct_dependencies:
 - espressif/nghttp
 - idf
 - joltwallet/littlefs
-manifest_hash: dbb2f36862266f6c300645c47318501bd31b6ba17bdf39ac13e029c96f68f186
+manifest_hash: 1aa581f26bb4450566c248e1b9e47e31a1eb60677b63c393fbe3f9e0b8426042
 target: esp32
 version: 2.0.0

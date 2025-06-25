@@ -16,9 +16,9 @@ static esp_err_t get_whoami_handler(httpd_req_t* req)
     return httpd_resp_send(req, response, strlen(response));
 }
 
+static char query[2048];
 static esp_err_t auth_req(httpd_req_t* req)
 {
-    char query[256];
     char token[128];
     char expected_token[128];
 
@@ -148,6 +148,106 @@ esp_err_t ota_post_handler(httpd_req_t* req)
     return ESP_OK;
 }
 
+esp_err_t model_post_handler(httpd_req_t* req)
+{
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+
+    esp_err_t auth_result = auth_req(req);
+    if (auth_result != ESP_OK) {
+        return auth_result;
+    }
+
+    char xor[4];
+    char model_name[512];
+    char model_path[512];
+
+    if (httpd_req_get_url_query_str(req, query, sizeof(query)) == ESP_OK) {
+        if (httpd_query_key_value(query, "xor", xor, sizeof(xor)) == ESP_OK) {
+            ESP_LOGI(TAG, "xor received: %s", xor);
+        } else {
+            ESP_LOGW(TAG, "XOR parameter missing");
+            httpd_resp_set_status(req, "400 Bad Request");
+            httpd_resp_send(req, "XOR parameter missing", HTTPD_RESP_USE_STRLEN);
+            return ESP_FAIL;
+        }
+
+        if (httpd_query_key_value(query, "name", model_name, sizeof(model_name)) == ESP_OK) {
+            ESP_LOGI(TAG, "model_name received: %s", model_name);
+        } else {
+            ESP_LOGW(TAG, "Model name parameter missing");
+            httpd_resp_set_status(req, "400 Bad Request");
+            httpd_resp_send(req, "Model name parameter missing", HTTPD_RESP_USE_STRLEN);
+            return ESP_FAIL;
+        }
+    }
+
+    const size_t BUF_SIZE = 1024 * 2;
+    char* buf = malloc(BUF_SIZE);
+
+    int remaining = req->content_len;
+    int total = 0;
+    int received;
+    int received_xor = 0;
+    ESP_LOGI("Upload model", "Receiving %d bytes", remaining);
+
+    strcpy(model_path, "/littlefs/");
+    strcat(model_path, model_name);
+
+    ESP_LOGI("Upload model", "model path: %s", model_path);
+
+    FILE* f = fopen(model_path, "wb");
+    if (f == NULL) {
+        ESP_LOGE(TAG, "Failed to open file for writing");
+        return ESP_FAIL;
+    }
+
+    while (remaining > 0) {
+        received = httpd_req_recv(req, buf, MIN(remaining, BUF_SIZE));
+        if (received <= 0)
+            break;
+
+        size_t written = fwrite(buf, 1, received, f);
+        if (written != received) {
+            ESP_LOGE("upload", "File write error");
+            fclose(f);
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "File write failed");
+            return ESP_FAIL;
+        }
+
+        for (int i = 0; i < received; ++i) {
+            received_xor ^= buf[i];
+        }
+
+        remaining -= received;
+        total += received;
+    }
+
+    ESP_LOGI("Upload model", "Received %d bytes, expected XOR:%s, XOR: %d", total, xor, received_xor);
+
+    fclose(f);
+
+    f = fopen(model_path, "rb");
+    if (f) {
+        size_t read_bytes;
+        int file_xor = 0;
+        rewind(f);
+        while ((read_bytes = fread(buf, 1, BUF_SIZE, f)) > 0) {
+            for (size_t i = 0; i < read_bytes; ++i) {
+                file_xor ^= buf[i];
+            }
+        }
+        ESP_LOGI("Upload model", "File XOR: %d", file_xor);
+        fclose(f);
+    }
+
+    free(buf);
+
+    list_littlefs_files();
+
+    httpd_resp_sendstr(req, "Firmware update successful. Rebooting...");
+    return ESP_OK;
+}
+
 esp_err_t options_handler(httpd_req_t* req)
 {
     httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
@@ -192,6 +292,13 @@ httpd_handle_t start_webserver()
         .handler = ota_post_handler,
     };
     httpd_register_uri_handler(server, &ota_post_uri);
+
+    httpd_uri_t model_post_uri = {
+        .uri = "/upload_model",
+        .method = HTTP_POST,
+        .handler = model_post_handler,
+    };
+    httpd_register_uri_handler(server, &model_post_uri);
 
     ESP_LOGI(TAG, "start_webserver");
 

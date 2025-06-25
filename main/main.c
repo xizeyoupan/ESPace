@@ -13,7 +13,7 @@ int my_vprintf(const char* _Format, va_list _ArgList)
     int len = vsnprintf(NULL, 0, _Format, args_copy);
     va_end(args_copy);
 
-    if (len > 100) {
+    if (len > 150) {
         return printf("str len = %d, ignored.\n", len);
     } else {
         return vprintf(_Format, _ArgList);
@@ -32,6 +32,8 @@ void app_main(void)
         ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK(ret);
+
+    littlefs_init();
 
     load_user_config();
 
