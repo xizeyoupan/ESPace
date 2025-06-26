@@ -34,7 +34,7 @@ void websocket_send_task(void* pvParameters)
     xMessageBufferReqSend = xMessageBufferCreate(user_config.msg_buf_send_size);
     configASSERT(xMessageBufferReqSend);
 
-    uint8_t* buffer = malloc(user_config.ws_send_buf_size);
+    uint8_t* buffer = (uint8_t*)malloc(user_config.ws_send_buf_size);
 
     while (1) {
         size_t msg_size = xMessageBufferReceive(xMessageBufferReqSend, buffer, user_config.ws_send_buf_size, portMAX_DELAY); // 读取完整消息

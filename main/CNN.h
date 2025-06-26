@@ -2,7 +2,6 @@
 #ifndef __CNN_H__
 #define __CNN_H__
 
-#include "cpp_header.h"
 #include "user_config.h"
 
 #ifdef __cplusplus

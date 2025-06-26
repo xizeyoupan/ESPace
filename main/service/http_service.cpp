@@ -1,5 +1,4 @@
 #include "http_service.h"
-#include "CNN.h"
 
 #define MIN(a, b) (a) < (b) ? (a) : (b)
 

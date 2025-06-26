@@ -20,7 +20,7 @@ void handle_req_task(void* pvParameters)
     xMessageBufferReqRecv = xMessageBufferCreate(user_config.msg_buf_recv_size);
     configASSERT(xMessageBufferReqRecv);
 
-    uint8_t* buffer = malloc(user_config.ws_recv_buf_size);
+    uint8_t* buffer = (uint8_t*)malloc(user_config.ws_recv_buf_size);
 
     cJSON* monitor_json = NULL;
 
@@ -151,7 +151,7 @@ void handle_req_task(void* pvParameters)
 
             memset(&received_command, 0, sizeof(received_command));
             received_command.type = MPU_COMMAND_TYPE_GET_ROW;
-            received_command.model_type = model_type->valuedouble;
+            received_command.model_type = (model_type_enum)model_type->valuedouble;
             received_command.sample_size = sample_size->valuedouble;
             received_command.sample_tick = sample_tick->valuedouble;
             received_command.need_predict = 0;
@@ -177,8 +177,6 @@ void handle_req_task(void* pvParameters)
         } else if (strcmp(type->valuestring, "start_predict") == 0) {
             const cJSON* data = cJSON_GetObjectItem(payload, "data");
             const cJSON* model_name = cJSON_GetObjectItem(data, "model");
-
-            
         }
 
         resp_string = cJSON_Print(resp_json);

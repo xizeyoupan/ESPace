@@ -47,13 +47,13 @@ void reset_user_config()
 
     memset(&user_config, 0, sizeof(user_config_t));
 
-    user_config.up_key_gpio_num = 18;
-    user_config.down_key_gpio_num = 0;
+    user_config.up_key_gpio_num = (gpio_num_t)18;
+    user_config.down_key_gpio_num = (gpio_num_t)0;
 
-    user_config.mpu_sda_gpio_num = 10;
-    user_config.mpu_scl_gpio_num = 5;
+    user_config.mpu_sda_gpio_num = (gpio_num_t)10;
+    user_config.mpu_scl_gpio_num = (gpio_num_t)5;
 
-    user_config.ws2812_gpio_num = 22;
+    user_config.ws2812_gpio_num = (gpio_num_t)22;
 
     user_config.wifi_scan_list_size = 20;
     user_config.wifi_connect_max_retry = 10;

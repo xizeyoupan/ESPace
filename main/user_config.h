@@ -1,6 +1,18 @@
 #ifndef __USER_CONFIG_H__
 #define __USER_CONFIG_H__
 
+#include <algorithm>
+#include <cstdint>
+#include <iterator>
+#include <map>
+#include <string>
+
+#include "tensorflow/lite/core/c/common.h"
+#include "tensorflow/lite/micro/micro_interpreter.h"
+#include "tensorflow/lite/micro/micro_log.h"
+#include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
+#include "tensorflow/lite/micro/testing/micro_test.h"
+
 #include "math.h"
 #include "string.h"
 
@@ -55,7 +67,7 @@
 #include "task/ws2812_task.h"
 #include "task/ws_task.h"
 
-// #include "CNN.h"
+#include "CNN.h"
 
 #include "nvs_flash.h"
 #include "nvs_util.h"

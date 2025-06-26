@@ -7,3 +7,5 @@ set(EXTRA_COMPONENT_DIRS ./components/)
 include($ENV{ADF_PATH}/CMakeLists.txt)
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(magic-wand)
+
+idf_build_set_property(COMPILE_OPTIONS "-Wno-missing-field-initializers" APPEND)

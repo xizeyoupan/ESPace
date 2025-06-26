@@ -7,31 +7,31 @@
    CONDITIONS OF ANY KIND, either express or implied.
 */
 
-#include <string.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/event_groups.h"
+#include "audio_common.h"
+#include "audio_element.h"
+#include "audio_event_iface.h"
+#include "audio_pipeline.h"
 #include "esp_log.h"
 #include "esp_wifi.h"
-#include "nvs_flash.h"
-#include "sdkconfig.h"
-#include "audio_element.h"
-#include "audio_pipeline.h"
-#include "audio_event_iface.h"
-#include "audio_common.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/event_groups.h"
+#include "freertos/task.h"
 #include "http_stream.h"
 #include "i2s_stream.h"
 #include "mp3_decoder.h"
+#include "nvs_flash.h"
+#include "sdkconfig.h"
+#include <string.h>
 
+#include "board.h"
 #include "esp_peripherals.h"
 #include "periph_button.h"
-#include "board.h"
 
 #include "esp_netif.h"
 
-static const char *TAG = "HTTP_MP3_EXAMPLE";
+static const char* TAG = "HTTP_MP3_EXAMPLE";
 
-void play_mp3_task(void *pvParameters)
+void play_mp3_task(void* pvParameters)
 {
     esp_log_level_set("*", ESP_LOG_WARN);
     esp_log_level_set(TAG, ESP_LOG_DEBUG);
@@ -72,7 +72,7 @@ void play_mp3_task(void *pvParameters)
     audio_pipeline_register(pipeline, i2s_stream_writer, "i2s");
 
     ESP_LOGI(TAG, "[2.5] Link it together http_stream-->mp3_decoder-->i2s_stream-->[codec_chip]");
-    const char *link_tag[3] = {"http", "mp3", "i2s"};
+    const char* link_tag[3] = { "http", "mp3", "i2s" };
     audio_pipeline_link(pipeline, &link_tag[0], 3);
 
     ESP_LOGI(TAG, "[2.6] Set up  uri (http as http_stream, mp3 as mp3 decoder, and default output is i2s)");
@@ -107,28 +107,22 @@ void play_mp3_task(void *pvParameters)
     audio_pipeline_run(pipeline);
 
     int volume = -20;
-    while (1)
-    {
+    while (1) {
         audio_event_iface_msg_t msg;
         esp_err_t ret = audio_event_iface_listen(evt, &msg, portMAX_DELAY);
 
-        if (ret != ESP_OK)
-        {
+        if (ret != ESP_OK) {
             ESP_LOGE(TAG, "[ * ] Event interface error : %d", ret);
             continue;
         }
 
-        if (msg.source_type == PERIPH_ID_BUTTON)
-        {
+        if (msg.source_type == PERIPH_ID_BUTTON) {
             ESP_LOGI(TAG, "cmd :%d, data: %d", msg.cmd, (int)msg.data);
-            if (msg.data == AUDIO_VOLUE_DOWM_GPIO)
-            {
-                switch (msg.cmd)
-                {
+            if ((int)msg.data == (int)AUDIO_VOLUE_DOWM_GPIO) {
+                switch (msg.cmd) {
                 case PERIPH_BUTTON_RELEASE:
                     volume -= 2;
-                    if (volume < -64)
-                    {
+                    if (volume < -64) {
                         volume = 0;
                     }
                     i2s_alc_volume_set(i2s_stream_writer, volume);
@@ -141,21 +135,19 @@ void play_mp3_task(void *pvParameters)
             }
         }
 
-        if (msg.source_type == AUDIO_ELEMENT_TYPE_ELEMENT && msg.source == (void *)mp3_decoder && msg.cmd == AEL_MSG_CMD_REPORT_MUSIC_INFO)
-        {
-            audio_element_info_t music_info = {0};
+        if (msg.source_type == AUDIO_ELEMENT_TYPE_ELEMENT && msg.source == (void*)mp3_decoder && msg.cmd == AEL_MSG_CMD_REPORT_MUSIC_INFO) {
+            audio_element_info_t music_info = {};
             audio_element_getinfo(mp3_decoder, &music_info);
 
             ESP_LOGI(TAG, "[ * ] Receive music info from mp3 decoder, sample_rates=%d, bits=%d, ch=%d",
-                     music_info.sample_rates, music_info.bits, music_info.channels);
+                music_info.sample_rates, music_info.bits, music_info.channels);
 
             i2s_stream_set_clk(i2s_stream_writer, music_info.sample_rates, music_info.bits, music_info.channels);
             continue;
         }
 
         /* Stop when the last pipeline element (i2s_stream_writer in this case) receives stop event */
-        if (msg.source_type == AUDIO_ELEMENT_TYPE_ELEMENT && msg.source == (void *)i2s_stream_writer && msg.cmd == AEL_MSG_CMD_REPORT_STATUS && (((int)msg.data == AEL_STATUS_STATE_STOPPED) || ((int)msg.data == AEL_STATUS_STATE_FINISHED)))
-        {
+        if (msg.source_type == AUDIO_ELEMENT_TYPE_ELEMENT && msg.source == (void*)i2s_stream_writer && msg.cmd == AEL_MSG_CMD_REPORT_STATUS && (((int)msg.data == AEL_STATUS_STATE_STOPPED) || ((int)msg.data == AEL_STATUS_STATE_FINISHED))) {
             ESP_LOGW(TAG, "[ * ] Stop event received");
             break;
         }

@@ -112,7 +112,7 @@ void mpu_task(void* pvParameters)
     reset_imu();
 
     int imu_data_oneshot_size = user_config.mpu_one_shot_max_sample_size * 6 * sizeof(float) + 16;
-    imu_data_oneshot = malloc(imu_data_oneshot_size);
+    imu_data_oneshot = (float*)malloc(imu_data_oneshot_size);
     if (imu_data_oneshot == NULL) {
         ESP_LOGE(TAG, "Failed to allocate memory for imu_data_oneshot, size: %d bytes", imu_data_oneshot_size);
         vTaskDelete(NULL);
@@ -140,7 +140,7 @@ void mpu_task(void* pvParameters)
                 }
 
                 total_bytes = received_command.sample_size * 6 * sizeof(float) + SAMPLE_START_OFFSET * sizeof(float);
-                imu_data = malloc(total_bytes);
+                imu_data = (float*)malloc(total_bytes);
                 if (imu_data == NULL) {
                     ESP_LOGE(TAG, "Failed to allocate memory for imu_data, size: %d bytes", total_bytes);
                     continue;

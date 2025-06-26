@@ -28,6 +28,16 @@ get_device_info_end:
 
 cJSON* get_task_state(void)
 {
+    // 定义一个 heap_caps_info_t 结构体来存储内存信息
+    multi_heap_info_t heap_info;
+
+    uint32_t total_free_bytes;
+    uint32_t total_allocated_bytes;
+    uint32_t largest_free_block;
+    uint32_t minimum_free_bytes;
+    uint8_t task_count = uxTaskGetNumberOfTasks(); // 获取当前任务数量
+    TaskStatus_t* task_status_array;
+
     cJSON* data = cJSON_CreateObject();
     cJSON* task_list = cJSON_CreateArray();
     cJSON* task = NULL;
@@ -35,8 +45,7 @@ cJSON* get_task_state(void)
         goto get_state_info_end;
     }
 
-    uint8_t task_count = uxTaskGetNumberOfTasks(); // 获取当前任务数量
-    TaskStatus_t* task_status_array = malloc(sizeof(TaskStatus_t) * task_count);
+    task_status_array = (TaskStatus_t*)malloc(sizeof(TaskStatus_t) * task_count);
 
     if (task_status_array != NULL) {
         // 获取所有任务的状态信息
@@ -70,15 +79,13 @@ cJSON* get_task_state(void)
 
     cJSON_AddItemToObject(data, "task_list", task_list);
 
-    // 定义一个 heap_caps_info_t 结构体来存储内存信息
-    multi_heap_info_t heap_info;
     // 获取堆内存的信息
     heap_caps_get_info(&heap_info, MALLOC_CAP_8BIT);
 
-    uint32_t total_free_bytes = heap_info.total_free_bytes;
-    uint32_t total_allocated_bytes = heap_info.total_allocated_bytes;
-    uint32_t largest_free_block = heap_info.largest_free_block;
-    uint32_t minimum_free_bytes = heap_info.minimum_free_bytes;
+    total_free_bytes = heap_info.total_free_bytes;
+    total_allocated_bytes = heap_info.total_allocated_bytes;
+    largest_free_block = heap_info.largest_free_block;
+    minimum_free_bytes = heap_info.minimum_free_bytes;
 
     cJSON_AddNumberToObject(data, "total_free_bytes", total_free_bytes);
     cJSON_AddNumberToObject(data, "total_allocated_bytes", total_allocated_bytes);
@@ -142,15 +149,15 @@ void assign_user_config_from_json(const cJSON* data)
     }
 
     const cJSON* up_key_gpio_num = cJSON_GetObjectItem(data, "up_key_gpio_num");
-    user_config.up_key_gpio_num = up_key_gpio_num->valuedouble;
+    user_config.up_key_gpio_num = (gpio_num_t)up_key_gpio_num->valuedouble;
     const cJSON* down_key_gpio_num = cJSON_GetObjectItem(data, "down_key_gpio_num");
-    user_config.down_key_gpio_num = down_key_gpio_num->valuedouble;
+    user_config.down_key_gpio_num = (gpio_num_t)down_key_gpio_num->valuedouble;
     const cJSON* mpu_sda_gpio_num = cJSON_GetObjectItem(data, "mpu_sda_gpio_num");
-    user_config.mpu_sda_gpio_num = mpu_sda_gpio_num->valuedouble;
+    user_config.mpu_sda_gpio_num = (gpio_num_t)mpu_sda_gpio_num->valuedouble;
     const cJSON* mpu_scl_gpio_num = cJSON_GetObjectItem(data, "mpu_scl_gpio_num");
-    user_config.mpu_scl_gpio_num = mpu_scl_gpio_num->valuedouble;
+    user_config.mpu_scl_gpio_num = (gpio_num_t)mpu_scl_gpio_num->valuedouble;
     const cJSON* ws2812_gpio_num = cJSON_GetObjectItem(data, "ws2812_gpio_num");
-    user_config.ws2812_gpio_num = ws2812_gpio_num->valuedouble;
+    user_config.ws2812_gpio_num = (gpio_num_t)ws2812_gpio_num->valuedouble;
 
     const cJSON* username = cJSON_GetObjectItem(data, "username");
     strcpy(user_config.username, username->valuestring);

@@ -1,36 +1,36 @@
 #include "wifi_service.h"
 
 extern user_config_t user_config;
-static const char *TAG = "WIFI_SERVICE";
+static const char* TAG = "WIFI_SERVICE";
 
 wifi_scan_config_t wifi_scan_config;
-char temp_str[50] = {'\0'};
+char temp_str[50] = { '\0' };
 
-cJSON *get_wifi_list(void)
+cJSON* get_wifi_list(void)
 {
-    cJSON *wifi_list          = NULL;
-    wifi_ap_record_t *ap_info = NULL;
+    cJSON* wifi_list = NULL;
+    wifi_ap_record_t* ap_info = NULL;
+    uint16_t number = user_config.wifi_scan_list_size;
+    uint16_t ap_count = 0;
 
     wifi_list = cJSON_CreateArray();
     if (wifi_list == NULL) {
         goto get_wifi_list_end;
     }
 
-    ap_info = malloc(sizeof(wifi_ap_record_t) * user_config.wifi_scan_list_size);
+    ap_info = (wifi_ap_record_t*)malloc(sizeof(wifi_ap_record_t) * user_config.wifi_scan_list_size);
     if (ap_info == NULL) {
         ESP_LOGE(TAG, "malloc ap_info failed");
         goto get_wifi_list_end;
     }
 
-    uint16_t number   = user_config.wifi_scan_list_size;
-    uint16_t ap_count = 0;
     memset(ap_info, 0, sizeof(wifi_ap_record_t) * number);
 
-    wifi_scan_config.show_hidden          = true;
-    wifi_scan_config.scan_type            = WIFI_SCAN_TYPE_ACTIVE;
+    wifi_scan_config.show_hidden = true;
+    wifi_scan_config.scan_type = WIFI_SCAN_TYPE_ACTIVE;
     wifi_scan_config.scan_time.active.min = 0;
     wifi_scan_config.scan_time.active.max = 120;
-    wifi_scan_config.scan_time.passive    = 360;
+    wifi_scan_config.scan_time.passive = 360;
     wifi_scan_config.home_chan_dwell_time = 30;
 
     ESP_ERROR_CHECK(esp_wifi_scan_start(&wifi_scan_config, true));
@@ -45,16 +45,16 @@ cJSON *get_wifi_list(void)
         ESP_LOGI(TAG, "RSSI    \t\t%d", ap_info[i].rssi);
         ESP_LOGI(TAG, "Channel \t\t%d", ap_info[i].primary);
         ESP_LOGI(TAG, "BSSID   \t\t%02X%02X%02X%02X%02X%02X\n",
-                 ap_info[i].bssid[0], ap_info[i].bssid[1], ap_info[i].bssid[2],
-                 ap_info[i].bssid[3], ap_info[i].bssid[4], ap_info[i].bssid[5]);
+            ap_info[i].bssid[0], ap_info[i].bssid[1], ap_info[i].bssid[2],
+            ap_info[i].bssid[3], ap_info[i].bssid[4], ap_info[i].bssid[5]);
 
         char bssid[18];
         sprintf(bssid, "%02X-%02X-%02X-%02X-%02X-%02X",
-                ap_info[i].bssid[0], ap_info[i].bssid[1], ap_info[i].bssid[2],
-                ap_info[i].bssid[3], ap_info[i].bssid[4], ap_info[i].bssid[5]);
+            ap_info[i].bssid[0], ap_info[i].bssid[1], ap_info[i].bssid[2],
+            ap_info[i].bssid[3], ap_info[i].bssid[4], ap_info[i].bssid[5]);
 
-        cJSON *wifi_item = cJSON_CreateObject();
-        cJSON_AddStringToObject(wifi_item, "SSID", (char *)ap_info[i].ssid);
+        cJSON* wifi_item = cJSON_CreateObject();
+        cJSON_AddStringToObject(wifi_item, "SSID", (char*)ap_info[i].ssid);
         cJSON_AddNumberToObject(wifi_item, "RSSI", ap_info[i].rssi);
         cJSON_AddStringToObject(wifi_item, "BSSID", bssid);
         cJSON_AddNumberToObject(wifi_item, "channel", ap_info[i].primary);
@@ -70,14 +70,18 @@ get_wifi_list_end:
     return wifi_list;
 }
 
-cJSON *get_wifi_info(void)
+cJSON* get_wifi_info(void)
 {
-    cJSON *data = cJSON_CreateObject();
+    esp_netif_t* netif;
+    wifi_mode_t current_mode;
+    wifi_ap_record_t wifi_ap_record;
+    esp_netif_ip_info_t ip_info;
+
+    cJSON* data = cJSON_CreateObject();
     if (data == NULL) {
         goto get_wifi_info_end;
     }
 
-    wifi_mode_t current_mode;
     ESP_ERROR_CHECK(esp_wifi_get_mode(&current_mode));
 
     cJSON_AddNumberToObject(data, "wifi_mode", current_mode);
@@ -85,25 +89,23 @@ cJSON *get_wifi_info(void)
         goto get_wifi_info_end;
     }
 
-    wifi_ap_record_t wifi_ap_record;
     ESP_ERROR_CHECK(esp_wifi_sta_get_ap_info(&wifi_ap_record));
     char bssid[18];
     sprintf(bssid, "%02X-%02X-%02X-%02X-%02X-%02X",
-            wifi_ap_record.bssid[0], wifi_ap_record.bssid[1], wifi_ap_record.bssid[2],
-            wifi_ap_record.bssid[3], wifi_ap_record.bssid[4], wifi_ap_record.bssid[5]);
+        wifi_ap_record.bssid[0], wifi_ap_record.bssid[1], wifi_ap_record.bssid[2],
+        wifi_ap_record.bssid[3], wifi_ap_record.bssid[4], wifi_ap_record.bssid[5]);
 
-    cJSON_AddStringToObject(data, "SSID", (char *)wifi_ap_record.ssid);
+    cJSON_AddStringToObject(data, "SSID", (char*)wifi_ap_record.ssid);
     cJSON_AddNumberToObject(data, "RSSI", wifi_ap_record.rssi);
     cJSON_AddStringToObject(data, "BSSID", bssid);
     cJSON_AddNumberToObject(data, "channel", wifi_ap_record.primary);
 
-    esp_netif_t *netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
+    netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
     if (netif == NULL) {
         ESP_LOGE(TAG, "Failed to get network interface");
         goto get_wifi_info_end;
     }
 
-    esp_netif_ip_info_t ip_info;
     if (esp_netif_get_ip_info(netif, &ip_info) == ESP_OK) {
         char ip[16];
         char gw[16];

@@ -1,4 +1,3 @@
-#include "CNN.h"
 #include "user_config.h"
 user_config_t user_config;
 

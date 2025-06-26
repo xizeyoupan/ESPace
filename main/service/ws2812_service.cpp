@@ -17,10 +17,11 @@ SemaphoreHandle_t ws2812_mutex;
 rmt_encoder_handle_t ws2812_encoder;
 rmt_encoder_handle_t ws2812_reset_encoder;
 rmt_bytes_encoder_config_t bytes_encoder_config = {
-    .bit0 = { .duration0 = T0H / 100, .level0 = 1, .duration1 = T0L / 100, .level1 = 0 }, // 逻辑 0
-    .bit1 = { .duration0 = T1H / 100, .level0 = 1, .duration1 = T1L / 100, .level1 = 0 }, // 逻辑 1
-    .flags.msb_first = 1 // 高位先发
+    .bit0 = rmt_symbol_word_t { .duration0 = T0H / 100, .level0 = 1, .duration1 = T0L / 100, .level1 = 0 }, // 逻辑 0
+    .bit1 = rmt_symbol_word_t { .duration0 = T1H / 100, .level0 = 1, .duration1 = T1L / 100, .level1 = 0 }, // 逻辑 1
+    .flags = { 1 } // 高位先发
 };
+
 rmt_copy_encoder_config_t bytes_reset_encoder_config = {};
 
 // 复位信号
@@ -53,13 +54,13 @@ void ws2812_init()
     ws2812_mutex = xSemaphoreCreateMutex();
     configASSERT(ws2812_mutex);
 
-    rmt_tx_channel_config_t tx_chan_config = {
-        .clk_src = RMT_CLK_SRC_DEFAULT, // select source clock
-        .gpio_num = user_config.ws2812_gpio_num,
-        .mem_block_symbols = 64, // increase the block size can make the LED less flickering
-        .resolution_hz = 10 * 1000 * 1000, // 10 MHz（100 ns 分辨率）,
-        .trans_queue_depth = 4, // set the number of transactions that can be pending in the background
-    };
+    rmt_tx_channel_config_t tx_chan_config = {};
+    tx_chan_config.clk_src = RMT_CLK_SRC_DEFAULT;
+    tx_chan_config.gpio_num = user_config.ws2812_gpio_num;
+    tx_chan_config.mem_block_symbols = 64; // increase the block size can make the LED less flickering
+    tx_chan_config.resolution_hz = 10 * 1000 * 1000; // 10 MHz（100 ns 分辨率）,
+    tx_chan_config.trans_queue_depth = 4; // set the number of transactions that can be pending in the background
+
     ESP_LOGI(TAG, "Create RMT TX channel");
 
     ESP_ERROR_CHECK(rmt_new_tx_channel(&tx_chan_config, &led_chan));
