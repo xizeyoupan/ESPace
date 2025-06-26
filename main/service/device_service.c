@@ -128,6 +128,8 @@ cJSON* get_user_config_json(void)
     cJSON_AddNumberToObject(data, "mpu_one_shot_max_sample_size", user_config.mpu_one_shot_max_sample_size);
     cJSON_AddNumberToObject(data, "mpu_buf_out_to_cnn_size", user_config.mpu_buf_out_to_cnn_size);
 
+    cJSON_AddNumberToObject(data, "tflite_arena_size", user_config.tflite_arena_size);
+
 get_user_config_json_end:
     return data;
 }
@@ -186,4 +188,7 @@ void assign_user_config_from_json(const cJSON* data)
     user_config.mpu_one_shot_max_sample_size = mpu_one_shot_max_sample_size->valuedouble;
     const cJSON* mpu_buf_out_to_cnn_size = cJSON_GetObjectItem(data, "mpu_buf_out_to_cnn_size");
     user_config.mpu_buf_out_to_cnn_size = mpu_buf_out_to_cnn_size->valuedouble;
+
+    const cJSON* tflite_arena_size = cJSON_GetObjectItem(data, "tflite_arena_size");
+    user_config.tflite_arena_size = tflite_arena_size->valuedouble;
 }

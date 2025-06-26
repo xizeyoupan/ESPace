@@ -6,6 +6,7 @@
 
 #include <dirent.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include "cJSON.h"
 #include "mdns.h"
@@ -55,7 +56,8 @@
 #include "task/ws2812_task.h"
 #include "task/ws_task.h"
 
-#include "CNN.h"
+// #include "CNN.h"
+
 #include "nvs_flash.h"
 #include "nvs_util.h"
 
@@ -101,6 +103,8 @@ typedef struct
     int mpu_command_buf_size;
     int mpu_one_shot_max_sample_size;
     int mpu_buf_out_to_cnn_size;
+
+    int tflite_arena_size;
 
 } user_config_t;
 

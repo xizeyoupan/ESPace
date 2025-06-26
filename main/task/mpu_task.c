@@ -136,6 +136,7 @@ void mpu_task(void* pvParameters)
                 sample_offset = SAMPLE_START_OFFSET;
                 if (imu_data != NULL) {
                     free(imu_data);
+                    imu_data = NULL;
                 }
 
                 total_bytes = received_command.sample_size * 6 * sizeof(float) + SAMPLE_START_OFFSET * sizeof(float);

@@ -8,6 +8,10 @@ extern mpu_command_t received_command;
 extern EventGroupHandle_t x_mpu_event_group;
 MessageBufferHandle_t xMessageBufferReqRecv;
 
+#define FILE_LIST_STR_LEN 4096
+
+char file_list_str[FILE_LIST_STR_LEN];
+
 void handle_req_task(void* pvParameters)
 {
     BaseType_t core_id = xPortGetCoreID(); // 返回当前任务所在的核心 ID
@@ -155,6 +159,21 @@ void handle_req_task(void* pvParameters)
             xEventGroupSetBits(x_mpu_event_group, MPU_SAMPLING_READY_BIT);
         } else if (strcmp(type->valuestring, "get_mpu_data_row_stop") == 0) {
             xEventGroupSetBits(x_mpu_event_group, MPU_SAMPLING_UNREADY_BIT);
+        } else if (strcmp(type->valuestring, "get_file_list") == 0) {
+            memset(file_list_str, 0, FILE_LIST_STR_LEN);
+            list_littlefs_files(file_list_str);
+            cJSON_AddStringToObject(resp_payload, "data", file_list_str);
+        } else if (strcmp(type->valuestring, "modify_model") == 0) {
+            const cJSON* data = cJSON_GetObjectItem(payload, "data");
+            const cJSON* new_val = cJSON_GetObjectItem(data, "new");
+            const cJSON* old_val = cJSON_GetObjectItem(data, "old");
+            const cJSON* del_val = cJSON_GetObjectItem(data, "del");
+
+            if (new_val && cJSON_IsString(new_val) && new_val->valuestring && strlen(new_val->valuestring)) {
+                rename_file(old_val->valuestring, new_val->valuestring);
+            } else if (del_val && cJSON_IsBool(del_val) && cJSON_IsTrue(del_val)) {
+                unlink_file(old_val->valuestring);
+            }
         }
 
         resp_string = cJSON_Print(resp_json);

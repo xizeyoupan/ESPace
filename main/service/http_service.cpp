@@ -1,4 +1,5 @@
 #include "http_service.h"
+#include "CNN.h"
 
 #define MIN(a, b) (a) < (b) ? (a) : (b)
 
@@ -67,7 +68,7 @@ esp_err_t websocket_handler(httpd_req_t* req)
     current_ws_fd = httpd_req_to_sockfd(req);
 
     uint8_t* ws_recv_buf = NULL;
-    ws_recv_buf = malloc(user_config.ws_recv_buf_size);
+    ws_recv_buf = (uint8_t*)malloc(user_config.ws_recv_buf_size);
 
     // 处理 WebSocket 数据帧
     httpd_ws_frame_t ws_pkt;
@@ -115,7 +116,7 @@ esp_err_t ota_post_handler(httpd_req_t* req)
     }
 
     const size_t BUF_SIZE = 1024 * 10;
-    char* buf = malloc(BUF_SIZE);
+    char* buf = (char*)malloc(BUF_SIZE);
 
     // 读取并写入 OTA 数据
     int remaining = req->content_len;
@@ -157,13 +158,13 @@ esp_err_t model_post_handler(httpd_req_t* req)
         return auth_result;
     }
 
-    char xor[4];
+    char xor_code[4];
     char model_name[512];
     char model_path[512];
 
     if (httpd_req_get_url_query_str(req, query, sizeof(query)) == ESP_OK) {
-        if (httpd_query_key_value(query, "xor", xor, sizeof(xor)) == ESP_OK) {
-            ESP_LOGI(TAG, "xor received: %s", xor);
+        if (httpd_query_key_value(query, "xor", xor_code, sizeof(xor_code)) == ESP_OK) {
+            ESP_LOGI(TAG, "xor received: %s", xor_code);
         } else {
             ESP_LOGW(TAG, "XOR parameter missing");
             httpd_resp_set_status(req, "400 Bad Request");
@@ -182,7 +183,7 @@ esp_err_t model_post_handler(httpd_req_t* req)
     }
 
     const size_t BUF_SIZE = 1024 * 2;
-    char* buf = malloc(BUF_SIZE);
+    char* buf = (char*)malloc(BUF_SIZE);
 
     int remaining = req->content_len;
     int total = 0;
@@ -222,29 +223,32 @@ esp_err_t model_post_handler(httpd_req_t* req)
         total += received;
     }
 
-    ESP_LOGI("Upload model", "Received %d bytes, expected XOR:%s, XOR: %d", total, xor, received_xor);
-
+    ESP_LOGI("Upload model", "Received %d bytes, expected XOR:%s, XOR: %d", total, xor_code, received_xor);
     fclose(f);
-
-    f = fopen(model_path, "rb");
-    if (f) {
-        size_t read_bytes;
-        int file_xor = 0;
-        rewind(f);
-        while ((read_bytes = fread(buf, 1, BUF_SIZE, f)) > 0) {
-            for (size_t i = 0; i < read_bytes; ++i) {
-                file_xor ^= buf[i];
-            }
-        }
-        ESP_LOGI("Upload model", "File XOR: %d", file_xor);
-        fclose(f);
-    }
-
     free(buf);
 
-    list_littlefs_files();
+    uint32_t size = get_file_size(model_name);
+    if (size == 0) {
+        ESP_LOGE(TAG, "Uploaded file size is 0, removing file");
+        return ESP_FAIL;
+    } else {
+        buf = (char*)malloc(size);
+        if (!buf) {
+            ESP_LOGE(TAG, "Failed to allocate buffer for verification");
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Memory allocation failed");
+            return ESP_FAIL;
+        }
 
-    httpd_resp_sendstr(req, "Firmware update successful. Rebooting...");
+        read_model_to_buf(model_name, buf, size);
+
+        int input_size, output_size;
+        load_and_check_model(buf, &input_size, &output_size);
+        free(buf);
+    }
+
+    list_littlefs_files(NULL);
+
+    httpd_resp_sendstr(req, "Model upload successful.");
     return ESP_OK;
 }
 
@@ -262,6 +266,8 @@ esp_err_t options_handler(httpd_req_t* req)
 httpd_handle_t start_webserver()
 {
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+    config.max_uri_handlers = 16;
+    config.stack_size = 1024 * 10;
     ESP_ERROR_CHECK(httpd_start(&server, &config));
 
     httpd_uri_t cors_options_uri = {

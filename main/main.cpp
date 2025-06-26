@@ -1,3 +1,4 @@
+#include "CNN.h"
 #include "user_config.h"
 user_config_t user_config;
 
@@ -13,7 +14,7 @@ int my_vprintf(const char* _Format, va_list _ArgList)
     int len = vsnprintf(NULL, 0, _Format, args_copy);
     va_end(args_copy);
 
-    if (len > 150) {
+    if (len > 99999) {
         return printf("str len = %d, ignored.\n", len);
     } else {
         return vprintf(_Format, _ArgList);
@@ -22,7 +23,7 @@ int my_vprintf(const char* _Format, va_list _ArgList)
     // return 0;
 }
 
-void app_main(void)
+extern "C" void app_main(void)
 {
     // Initialize NVS
     ESP_LOGI(TAG, "Initialize NVS");
@@ -34,8 +35,9 @@ void app_main(void)
     ESP_ERROR_CHECK(ret);
 
     littlefs_init();
-
+    list_littlefs_files(NULL);
     load_user_config();
+    tflite_init();
 
     xTaskCreatePinnedToCore(&ws2812_task, "ws2812_task", 1024 * 3, NULL, 5, NULL, 0);
 

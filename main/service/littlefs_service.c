@@ -1,7 +1,9 @@
 #include "littlefs_service.h"
+#define MAX_PATH_SIZE 512
 
 static const char* TAG = "LITTLEFS_SERVICE";
 
+char full_path[MAX_PATH_SIZE];
 void littlefs_init(void)
 {
     ESP_LOGI(TAG, "Initializing LittleFS");
@@ -35,7 +37,7 @@ void littlefs_init(void)
     }
 }
 
-void list_littlefs_files(void)
+void list_littlefs_files(char* file_list)
 {
     DIR* dir = opendir("/littlefs");
     if (!dir) {
@@ -44,9 +46,14 @@ void list_littlefs_files(void)
     }
 
     struct dirent* entry;
+
     while ((entry = readdir(dir)) != NULL) {
-        char full_path[512];
-        snprintf(full_path, sizeof(full_path), "/littlefs/%s", entry->d_name);
+        if (file_list) {
+            strcat(file_list, entry->d_name);
+            strcat(file_list, "\n");
+        }
+
+        snprintf(full_path, MAX_PATH_SIZE, "/littlefs/%s", entry->d_name);
 
         struct stat st;
         if (stat(full_path, &st) == 0) {
@@ -55,6 +62,57 @@ void list_littlefs_files(void)
             ESP_LOGW(TAG, "Failed to stat file: %s", entry->d_name);
         }
     }
-
     closedir(dir);
+}
+
+uint32_t get_file_size(const char* file_name)
+{
+
+    snprintf(full_path, MAX_PATH_SIZE, "/littlefs/%s", file_name);
+    struct stat st;
+    if (stat(full_path, &st) == 0) {
+        ESP_LOGI(TAG, "File: %s, Size: %ld bytes", file_name, st.st_size);
+        return st.st_size;
+    } else {
+        ESP_LOGE(TAG, "Failed to stat file: %s", file_name);
+        return 0;
+    }
+}
+
+void read_model_to_buf(const char* model_name, void* buf, int buf_size)
+{
+    snprintf(full_path, MAX_PATH_SIZE, "/littlefs/%s", model_name);
+    uint32_t size = get_file_size(model_name);
+
+    FILE* f = fopen(full_path, "rb");
+    rewind(f);
+    size_t read_bytes = fread(buf, 1, buf_size, f);
+    ESP_LOGI(TAG, "Read %zu bytes into buffer of size %d (file size: %lu)", read_bytes, buf_size, size);
+    fclose(f);
+}
+
+char old_path[MAX_PATH_SIZE];
+char new_path[MAX_PATH_SIZE];
+void rename_file(char* old_name, char* new_name)
+{
+
+    snprintf(old_path, MAX_PATH_SIZE, "/littlefs/%s", old_name);
+    snprintf(new_path, MAX_PATH_SIZE, "/littlefs/%s", new_name);
+
+    if (rename(old_path, new_path) == 0) {
+        ESP_LOGI(TAG, "Renamed file from %s to %s", old_name, new_name);
+    } else {
+        ESP_LOGE(TAG, "Failed to rename file from %s to %s", old_name, new_name);
+    }
+}
+
+void unlink_file(char* filename)
+{
+    snprintf(full_path, MAX_PATH_SIZE, "/littlefs/%s", filename);
+
+    if (unlink(full_path) == 0) {
+        ESP_LOGI(TAG, "Deleted file: %s", filename);
+    } else {
+        ESP_LOGE(TAG, "Failed to delete file: %s", filename);
+    }
 }

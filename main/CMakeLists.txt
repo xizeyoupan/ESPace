@@ -2,7 +2,7 @@ idf_component_register(
     SRCS
     "CNN.cpp"
     "nvs_util.c"
-    "main.c"
+    "main.cpp"
     "./task/play_mp3.c"
     "./task/status_task.c"
     "./task/button.c"
@@ -14,7 +14,7 @@ idf_component_register(
     "./service/wifi_service.c"
     "./service/device_service.c"
     "./service/button_service.c"
-    "./service/http_service.c"
+    "./service/http_service.cpp"
     "./service/littlefs_service.c"
     "./service/ws2812_service.c"
     "./service/mpu_service.cpp"
