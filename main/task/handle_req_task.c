@@ -174,6 +174,11 @@ void handle_req_task(void* pvParameters)
             } else if (del_val && cJSON_IsBool(del_val) && cJSON_IsTrue(del_val)) {
                 unlink_file(old_val->valuestring);
             }
+        } else if (strcmp(type->valuestring, "start_predict") == 0) {
+            const cJSON* data = cJSON_GetObjectItem(payload, "data");
+            const cJSON* model_name = cJSON_GetObjectItem(data, "model");
+
+            
         }
 
         resp_string = cJSON_Print(resp_json);

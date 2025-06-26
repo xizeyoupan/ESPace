@@ -1,5 +1,4 @@
 #include "CNN.h"
-#include "model.h"
 
 namespace micro_test {
 int tests_passed;
@@ -95,6 +94,9 @@ TfLiteStatus load_and_check_model(const void* buf, int* input_size, int* output_
     for (int i = 0; i < input->dims->size; ++i) {
         ESP_LOGI(TAG, "model input dim[%d]=%d", i, input->dims->data[i]);
     }
+    if (input_size) {
+        *input_size = input->dims->data[2];
+    }
 
     output = interpreter->output(0);
     TF_LITE_MICRO_EXPECT(output != nullptr);
@@ -103,6 +105,9 @@ TfLiteStatus load_and_check_model(const void* buf, int* input_size, int* output_
     ESP_LOGI(TAG, "model input dims:");
     for (int i = 0; i < output->dims->size; ++i) {
         ESP_LOGI(TAG, "model output dim[%d]=%d", i, output->dims->data[i]);
+    }
+    if (output_size) {
+        *output_size = output->dims->data[1];
     }
 
     return kTfLiteOk;

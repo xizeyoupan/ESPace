@@ -4,7 +4,6 @@ idf_component_register(
     "nvs_util.c"
     "main.cpp"
     "./task/play_mp3.c"
-    "./task/status_task.c"
     "./task/button.c"
     "./task/handle_req_task.c"
     "./task/mpu_task.c"

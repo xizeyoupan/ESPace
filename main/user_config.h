@@ -51,7 +51,6 @@
 #include "task/handle_req_task.h"
 #include "task/mpu_task.h"
 #include "task/play_mp3.h"
-#include "task/status_task.h"
 #include "task/wand_server_task.h"
 #include "task/ws2812_task.h"
 #include "task/ws_task.h"
