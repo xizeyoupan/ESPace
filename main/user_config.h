@@ -56,6 +56,7 @@
 #include "service/http_service.h"
 #include "service/littlefs_service.h"
 #include "service/mpu_service.h"
+#include "service/tflite_service.h"
 #include "service/wifi_service.h"
 #include "service/ws2812_service.h"
 
@@ -63,11 +64,10 @@
 #include "task/handle_req_task.h"
 #include "task/mpu_task.h"
 #include "task/play_mp3.h"
+#include "task/tflite_task.h"
 #include "task/wand_server_task.h"
 #include "task/ws2812_task.h"
 #include "task/ws_task.h"
-
-#include "CNN.h"
 
 #include "nvs_flash.h"
 #include "nvs_util.h"
@@ -111,11 +111,11 @@ typedef struct
 
     uint16_t button_period_ms;
 
-    int mpu_command_buf_size;
     int mpu_one_shot_max_sample_size;
     int mpu_buf_out_to_cnn_size;
 
     int tflite_arena_size;
+    int tflite_model_size;
 
 } user_config_t;
 

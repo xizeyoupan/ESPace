@@ -4,7 +4,6 @@ static const char* TAG = "MPU_TASK";
 extern user_config_t user_config;
 
 extern MessageBufferHandle_t xMessageBufferReqSend;
-MessageBufferHandle_t xMessageBufferMPUOut;
 MessageBufferHandle_t xMessageBufferMPUOut2CNN;
 mpu_command_t received_command;
 EventGroupHandle_t x_mpu_event_group;
@@ -30,6 +29,26 @@ static void send_imu_data_to_ws()
         ESP_LOGE(TAG, "Failed to send imu_data to ws buffer, sent %d bytes, expected %d bytes.", bytes_sent, total_bytes);
     } else {
         ESP_LOGI(TAG, "Sent imu data to ws buffer, size: %d bytes", total_bytes);
+    }
+}
+
+static void send_imu_data_to_tflite()
+{
+    for (size_t i = 0; i < received_command.sample_size; i++) {
+        imu_data[SAMPLE_START_OFFSET + 0 * received_command.sample_size + i] /= 4;
+        imu_data[SAMPLE_START_OFFSET + 1 * received_command.sample_size + i] /= 4;
+        imu_data[SAMPLE_START_OFFSET + 2 * received_command.sample_size + i] /= 4;
+        imu_data[SAMPLE_START_OFFSET + 3 * received_command.sample_size + i] /= 500;
+        imu_data[SAMPLE_START_OFFSET + 4 * received_command.sample_size + i] /= 500;
+        imu_data[SAMPLE_START_OFFSET + 5 * received_command.sample_size + i] /= 500;
+    }
+
+    size_t data_size = received_command.sample_size * 6 * sizeof(float);
+    size_t bytes_sent = xMessageBufferSend(xMessageBufferMPUOut2CNN, imu_data + 2, data_size, portMAX_DELAY);
+    if (bytes_sent != data_size) {
+        ESP_LOGE(TAG, "Failed to send imu data to tflite, sent %d bytes, expected %d bytes.", bytes_sent, data_size);
+    } else {
+        ESP_LOGI(TAG, "Sent imu data to tflite, size: %d bytes", bytes_sent);
     }
 }
 
@@ -64,9 +83,8 @@ static void mpu_periodic_timer_callback(void* arg)
         sample_offset++;
         if (sample_offset >= received_command.sample_size + SAMPLE_START_OFFSET) {
             sample_offset = SAMPLE_START_OFFSET;
-            if (received_command.need_predict == 0) {
+            if (received_command.send_to_ws) {
                 send_imu_data_to_ws();
-            } else {
             }
         }
 
@@ -96,9 +114,7 @@ void mpu_task(void* pvParameters)
     ESP_LOGI(TAG, "Task is running on core %d.", core_id);
 
     x_mpu_event_group = xEventGroupCreate();
-    xMessageBufferMPUOut = xMessageBufferCreate(user_config.msg_buf_recv_size);
-    xMessageBufferMPUOut2CNN = xMessageBufferCreate(user_config.msg_buf_recv_size);
-    configASSERT(xMessageBufferMPUOut);
+    xMessageBufferMPUOut2CNN = xMessageBufferCreate(user_config.mpu_buf_out_to_cnn_size);
     configASSERT(xMessageBufferMPUOut2CNN);
 
     const esp_timer_create_args_t periodic_timer_args = {
@@ -124,7 +140,11 @@ void mpu_task(void* pvParameters)
             pdTRUE, pdFALSE, portMAX_DELAY);
         if (uxBits & MPU_SAMPLING_READY_BIT) {
             ESP_LOGI(TAG, "Sampling ready event triggered.");
-            ws2812_blink(COLOR_MPU_SAMPLING);
+            if (received_command.need_predict) {
+                ws2812_blink(get_color_by_name(received_command.model_name));
+            } else {
+                ws2812_blink(COLOR_MPU_SAMPLING);
+            }
         } else if (uxBits & MPU_SAMPLING_UNREADY_BIT) {
             ESP_LOGI(TAG, "Sampling unready event triggered.");
             memset(&received_command, 0, sizeof(received_command));
@@ -168,7 +188,13 @@ void mpu_task(void* pvParameters)
                         i * received_command.sample_size + imu_data + SAMPLE_START_OFFSET, received_command.sample_size);
                 }
 
-                send_imu_data_to_ws();
+                if (received_command.send_to_ws) {
+                    send_imu_data_to_ws();
+                }
+
+                if (received_command.need_predict) {
+                    send_imu_data_to_tflite();
+                }
             }
         }
     }

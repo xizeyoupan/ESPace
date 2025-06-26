@@ -53,8 +53,9 @@ extern "C" void app_main(void)
     configASSERT(xMessageBufferReqRecv);
 
     xTaskCreatePinnedToCore(&mpu_task, "mpu_task", 1024 * 5, NULL, 10, NULL, 1);
+    vTaskDelay(pdMS_TO_TICKS(100));
 
-    // xTaskCreatePinnedToCore(&CNN_task, "CNN", 1024 * 20, NULL, 10, NULL, 1);
+    xTaskCreatePinnedToCore(&tflite_task, "tflite_task", 1024 * 5, NULL, 9, NULL, 1);
 
     xTaskCreatePinnedToCore(&scan_button_task, "button_task", 1024 * 3, NULL, 5, NULL, 1);
 

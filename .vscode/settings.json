@@ -172,6 +172,7 @@
     "idf.espIdfPath": "/home/mio/esp/v5.2.3/esp-idf",
     "idf.toolsPath": "/home/mio/.espressif",
     "idf.espIdfPathWin": "c:\\sdk\\esp-idf-v5.2.1",
+    "idf.espAdfPathWin": "C:\\Users\\liuke\\.espressif\\esp-adf",
     "idf.toolsPathWin": "C:\\Users\\liuke\\.espressif",
     "idf.pythonInstallPath": "C:\\Users\\liuke\\.espressif\\tools\\idf-python\\3.11.2\\python.exe",
 }

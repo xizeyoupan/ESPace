@@ -25,10 +25,12 @@ typedef enum {
 typedef struct
 {
     char caller[32]; // 调用者
+    char model_name[512];
     mpu_command_type_enum type; // 命令类型
     model_type_enum model_type; // 模型类型
     uint32_t sample_size; // 采样大小
     uint32_t sample_tick; // 采样间隔
+    uint8_t send_to_ws;
     uint8_t need_predict; // 是否需要预测
 } mpu_command_t;
 

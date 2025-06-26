@@ -136,7 +136,7 @@ void start_i2c(void)
     i2c_installed = 1;
 }
 
-extern "C" void reset_imu()
+void reset_imu()
 {
     xSemaphoreTake(mpu_mutex, portMAX_DELAY);
 
@@ -199,7 +199,7 @@ extern "C" void reset_imu()
     xSemaphoreGive(mpu_mutex);
 }
 
-extern "C" void get_angle_and_m6(double* _roll, double* _pitch, double* _ax, double* _ay, double* _az, double* _gx, double* _gy, double* _gz)
+void get_angle_and_m6(double* _roll, double* _pitch, double* _ax, double* _ay, double* _az, double* _gx, double* _gy, double* _gz)
 {
     xSemaphoreTake(mpu_mutex, portMAX_DELAY);
     _getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
@@ -270,7 +270,7 @@ extern "C" void get_angle_and_m6(double* _roll, double* _pitch, double* _ax, dou
     *_gz = gz;
 }
 
-extern "C" void mpu_mutex_init()
+void mpu_mutex_init()
 {
     mpu_mutex = xSemaphoreCreateMutex();
     configASSERT(mpu_mutex);

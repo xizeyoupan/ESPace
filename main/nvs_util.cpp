@@ -71,11 +71,11 @@ void reset_user_config()
 
     user_config.button_period_ms = 3000;
 
-    user_config.mpu_command_buf_size = 2 * 1024;
     user_config.mpu_one_shot_max_sample_size = 500;
     user_config.mpu_buf_out_to_cnn_size = 20 * 1024;
 
     user_config.tflite_arena_size = 50 * 1024;
+    user_config.tflite_model_size = 600 * 6 * 4;
 }
 
 void load_user_config()
@@ -111,4 +111,48 @@ void save_user_config()
     } else {
         ESP_LOGE(TAG, "Failed to save user config to NVS");
     }
+}
+
+int get_model_type_by_name(char* name)
+{
+    if (strstr(name, "oneshot") != NULL) {
+        return MODEL_TYPE_ONESHOT;
+    }
+    return MODEL_TYPE_PERIODIC;
+}
+
+size_t get_sample_tick_by_name(char* name)
+{
+    char* token = strtok(name, ".");
+    while (token != NULL) {
+        if (isdigit((unsigned char)token[0])) {
+            ESP_LOGI(TAG, "Found sample tick: %s", token);
+            return (size_t)atoi(token);
+        }
+        token = strtok(NULL, ".");
+    }
+    return 0;
+}
+
+uint32_t get_color_by_name(char* name)
+{
+    // Make a copy to avoid modifying the original string
+    char* name_copy = strdup(name);
+    if (!name_copy)
+        return 0;
+
+    char* p = strrchr(name_copy, '.');
+    if (!p) {
+        free(name_copy);
+        return 0;
+    }
+    *p = '\0';
+    p = strrchr(name_copy, '.');
+    if (!p) {
+        free(name_copy);
+        return 0;
+    }
+    uint32_t color = (uint32_t)strtoul(p + 1, NULL, 16);
+    free(name_copy);
+    return color;
 }

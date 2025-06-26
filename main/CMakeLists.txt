@@ -1,12 +1,12 @@
 idf_component_register(
     SRCS
-    "CNN.cpp"
     "nvs_util.cpp"
     "main.cpp"
-    "./task/play_mp3.cpp"
+    "./task/play_mp3.c"
     "./task/button.cpp"
     "./task/handle_req_task.cpp"
     "./task/mpu_task.cpp"
+    "./task/tflite_task.cpp"
     "./task/wand_server_task.cpp"
     "./task/ws_task.cpp"
     "./task/ws2812_task.cpp"
@@ -17,6 +17,7 @@ idf_component_register(
     "./service/littlefs_service.cpp"
     "./service/ws2812_service.cpp"
     "./service/mpu_service.cpp"
+    "./service/tflite_service.cpp"
     INCLUDE_DIRS
     "."
     "./service"

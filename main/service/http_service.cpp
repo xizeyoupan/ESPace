@@ -3,6 +3,7 @@
 #define MIN(a, b) (a) < (b) ? (a) : (b)
 
 static const char* TAG = "HTTP_SERVICE";
+extern uint8_t* tflite_model_buf;
 
 httpd_handle_t server = NULL;
 int current_ws_fd = -1;
@@ -148,6 +149,9 @@ esp_err_t ota_post_handler(httpd_req_t* req)
     return ESP_OK;
 }
 
+char xor_code[4];
+char model_name[512];
+char model_path[512];
 esp_err_t model_post_handler(httpd_req_t* req)
 {
     httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
@@ -156,10 +160,6 @@ esp_err_t model_post_handler(httpd_req_t* req)
     if (auth_result != ESP_OK) {
         return auth_result;
     }
-
-    char xor_code[4];
-    char model_name[512];
-    char model_path[512];
 
     if (httpd_req_get_url_query_str(req, query, sizeof(query)) == ESP_OK) {
         if (httpd_query_key_value(query, "xor", xor_code, sizeof(xor_code)) == ESP_OK) {
@@ -231,18 +231,8 @@ esp_err_t model_post_handler(httpd_req_t* req)
         ESP_LOGE(TAG, "Uploaded file size is 0, removing file");
         return ESP_FAIL;
     } else {
-        buf = (char*)malloc(size);
-        if (!buf) {
-            ESP_LOGE(TAG, "Failed to allocate buffer for verification");
-            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Memory allocation failed");
-            return ESP_FAIL;
-        }
-
-        read_model_to_buf(model_name, buf, size);
-
-        int input_size, output_size;
-        load_and_check_model(buf, &input_size, &output_size);
-        free(buf);
+        read_model_to_buf(model_name, tflite_model_buf, size);
+        load_and_check_model(NULL, NULL);
     }
 
     list_littlefs_files(NULL);

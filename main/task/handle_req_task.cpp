@@ -7,9 +7,9 @@ extern user_config_t user_config;
 extern mpu_command_t received_command;
 extern EventGroupHandle_t x_mpu_event_group;
 MessageBufferHandle_t xMessageBufferReqRecv;
+extern uint8_t* tflite_model_buf;
 
 #define FILE_LIST_STR_LEN 4096
-
 char file_list_str[FILE_LIST_STR_LEN];
 
 void handle_req_task(void* pvParameters)
@@ -155,8 +155,9 @@ void handle_req_task(void* pvParameters)
             received_command.sample_size = sample_size->valuedouble;
             received_command.sample_tick = sample_tick->valuedouble;
             received_command.need_predict = 0;
-
+            received_command.send_to_ws = 1;
             xEventGroupSetBits(x_mpu_event_group, MPU_SAMPLING_READY_BIT);
+
         } else if (strcmp(type->valuestring, "get_mpu_data_row_stop") == 0) {
             xEventGroupSetBits(x_mpu_event_group, MPU_SAMPLING_UNREADY_BIT);
         } else if (strcmp(type->valuestring, "get_file_list") == 0) {
@@ -177,6 +178,27 @@ void handle_req_task(void* pvParameters)
         } else if (strcmp(type->valuestring, "start_predict") == 0) {
             const cJSON* data = cJSON_GetObjectItem(payload, "data");
             const cJSON* model_name = cJSON_GetObjectItem(data, "model");
+
+            uint32_t size = get_file_size(model_name->valuestring);
+            int sample_size;
+            if (size == 0) {
+                ESP_LOGE(TAG, "select model size is 0");
+                goto json_parse_end;
+            } else {
+                read_model_to_buf(model_name->valuestring, tflite_model_buf, size);
+                load_and_check_model(&sample_size, NULL);
+            }
+
+            memset(&received_command, 0, sizeof(received_command));
+            strcpy(received_command.model_name, model_name->valuestring);
+            received_command.type = MPU_COMMAND_TYPE_GET_ROW;
+            received_command.model_type = (model_type_enum)get_model_type_by_name(model_name->valuestring);
+            received_command.sample_size = sample_size;
+            received_command.sample_tick = get_sample_tick_by_name(model_name->valuestring);
+            received_command.need_predict = 1;
+            received_command.send_to_ws = 1;
+
+            xEventGroupSetBits(x_mpu_event_group, MPU_SAMPLING_READY_BIT);
         }
 
         resp_string = cJSON_Print(resp_json);

@@ -5,9 +5,10 @@
             "includePath": [
                 "${config:idf.espIdfPath}/components/**",
                 "${config:idf.espIdfPathWin}/components/**",
+                "${config:idf.espAdfPathWin}/components/**",
                 "${workspaceFolder}/**"
             ],
-            "compilerPath": "${config:idf.toolsPath}/tools/xtensa-esp-elf/esp-13.2.0_20230928/xtensa-esp-elf/bin/xtensa-esp32-elf-gcc"
+            "compilerPath": "${config:idf.toolsPathWin}/tools/xtensa-esp-elf/esp-13.2.0_20230928/xtensa-esp-elf/bin/xtensa-esp32-elf-gcc"
         }
     ],
     "version": 4
