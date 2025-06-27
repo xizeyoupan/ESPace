@@ -13,13 +13,13 @@ int my_vprintf(const char* _Format, va_list _ArgList)
     int len = vsnprintf(NULL, 0, _Format, args_copy);
     va_end(args_copy);
 
-    if (len > 99999) {
+    if (user_config.esplog_max_length == 0) {
+        return 0;
+    } else if (len > user_config.esplog_max_length) {
         return printf("str len = %d, ignored.\n", len);
     } else {
         return vprintf(_Format, _ArgList);
     }
-
-    // return 0;
 }
 
 extern "C" void app_main(void)

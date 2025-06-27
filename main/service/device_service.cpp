@@ -137,6 +137,8 @@ cJSON* get_user_config_json(void)
     cJSON_AddNumberToObject(data, "tflite_arena_size", user_config.tflite_arena_size);
     cJSON_AddNumberToObject(data, "tflite_model_size", user_config.tflite_model_size);
 
+    cJSON_AddNumberToObject(data, "esplog_max_length", user_config.esplog_max_length);
+
 get_user_config_json_end:
     return data;
 }
@@ -198,4 +200,7 @@ void assign_user_config_from_json(const cJSON* data)
     user_config.tflite_arena_size = tflite_arena_size->valuedouble;
     const cJSON* tflite_model_size = cJSON_GetObjectItem(data, "tflite_model_size");
     user_config.tflite_model_size = tflite_model_size->valuedouble;
+
+    const cJSON* esplog_max_length = cJSON_GetObjectItem(data, "esplog_max_length");
+    user_config.esplog_max_length = esplog_max_length->valuedouble;
 }

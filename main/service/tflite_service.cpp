@@ -105,8 +105,11 @@ TfLiteStatus load_and_check_model(int* input_size, int* output_size)
     return kTfLiteOk;
 }
 
-TfLiteStatus tflite_invoke(float* input_buf, size_t data_size)
+TfLiteStatus tflite_invoke(float* input_buf, size_t data_size, float* out_put_buf, int* output_size)
 {
+    if (output_size) {
+        *output_size = output->dims->data[1];
+    }
     uint64_t start = esp_timer_get_time();
 
     std::copy_n(input_buf, data_size, tflite::GetTensorData<model_type>(input));
@@ -122,6 +125,12 @@ TfLiteStatus tflite_invoke(float* input_buf, size_t data_size)
     // Log output tensor values
     for (int i = 0; i < output->dims->data[1]; ++i) {
         ESP_LOGI(TAG, "output[%d]=%f", i, tflite::GetTensorData<model_type>(output)[i]);
+    }
+
+    if (out_put_buf) {
+        for (int i = 0; i < output->dims->data[1]; ++i) {
+            out_put_buf[i] = tflite::GetTensorData<model_type>(output)[i];
+        }
     }
 
     return kTfLiteOk;

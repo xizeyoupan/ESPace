@@ -117,6 +117,8 @@ typedef struct
     int tflite_arena_size;
     int tflite_model_size;
 
+    int esplog_max_length;
+
 } user_config_t;
 
 #ifdef __cplusplus

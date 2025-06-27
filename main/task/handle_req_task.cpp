@@ -199,6 +199,8 @@ void handle_req_task(void* pvParameters)
             received_command.send_to_ws = 1;
 
             xEventGroupSetBits(x_mpu_event_group, MPU_SAMPLING_READY_BIT);
+        } else if (strcmp(type->valuestring, "stop_predict") == 0) {
+            xEventGroupSetBits(x_mpu_event_group, MPU_SAMPLING_UNREADY_BIT);
         }
 
         resp_string = cJSON_Print(resp_json);

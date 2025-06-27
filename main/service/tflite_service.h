@@ -9,7 +9,7 @@ extern "C" {
 
 TfLiteStatus tflite_init();
 TfLiteStatus load_and_check_model(int* input_size, int* output_size);
-TfLiteStatus tflite_invoke(float* input_buf, size_t data_size);
+TfLiteStatus tflite_invoke(float* input_buf, size_t data_size, float* out_put_buf, int* output_size);
 
 #ifdef __cplusplus
 }
