@@ -31,6 +31,7 @@ cJSON* get_task_state(void)
     // 定义一个 heap_caps_info_t 结构体来存储内存信息
     multi_heap_info_t heap_info;
 
+    uint32_t internal_free_bytes;
     uint32_t total_free_bytes;
     uint32_t total_allocated_bytes;
     uint32_t largest_free_block;
@@ -87,7 +88,11 @@ cJSON* get_task_state(void)
     largest_free_block = heap_info.largest_free_block;
     minimum_free_bytes = heap_info.minimum_free_bytes;
 
+    heap_caps_get_info(&heap_info, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+    internal_free_bytes = heap_info.total_free_bytes;
+
     cJSON_AddNumberToObject(data, "total_free_bytes", total_free_bytes);
+    cJSON_AddNumberToObject(data, "internal_free_bytes", internal_free_bytes);
     cJSON_AddNumberToObject(data, "total_allocated_bytes", total_allocated_bytes);
     cJSON_AddNumberToObject(data, "largest_free_block", largest_free_block);
     cJSON_AddNumberToObject(data, "minimum_free_bytes", minimum_free_bytes);
@@ -138,6 +143,13 @@ cJSON* get_user_config_json(void)
     cJSON_AddNumberToObject(data, "tflite_model_size", user_config.tflite_model_size);
 
     cJSON_AddNumberToObject(data, "esplog_max_length", user_config.esplog_max_length);
+
+    cJSON_AddNumberToObject(data, "periph_pwr_gpio_num", user_config.periph_pwr_gpio_num);
+    cJSON_AddNumberToObject(data, "i2s_bck_gpio_num", user_config.i2s_bck_gpio_num);
+    cJSON_AddNumberToObject(data, "i2s_ws_gpio_num", user_config.i2s_ws_gpio_num);
+    cJSON_AddNumberToObject(data, "i2s_dout_gpio_num", user_config.i2s_dout_gpio_num);
+    cJSON_AddNumberToObject(data, "ir_rx_gpio_num", user_config.ir_rx_gpio_num);
+    cJSON_AddNumberToObject(data, "ir_tx_gpio_num", user_config.ir_tx_gpio_num);
 
 get_user_config_json_end:
     return data;
@@ -203,4 +215,22 @@ void assign_user_config_from_json(const cJSON* data)
 
     const cJSON* esplog_max_length = cJSON_GetObjectItem(data, "esplog_max_length");
     user_config.esplog_max_length = esplog_max_length->valuedouble;
+
+    const cJSON* periph_pwr_gpio_num = cJSON_GetObjectItem(data, "periph_pwr_gpio_num");
+    user_config.periph_pwr_gpio_num = (gpio_num_t)periph_pwr_gpio_num->valuedouble;
+
+    const cJSON* i2s_bck_gpio_num = cJSON_GetObjectItem(data, "i2s_bck_gpio_num");
+    user_config.i2s_bck_gpio_num = (gpio_num_t)i2s_bck_gpio_num->valuedouble;
+
+    const cJSON* i2s_ws_gpio_num = cJSON_GetObjectItem(data, "i2s_ws_gpio_num");
+    user_config.i2s_ws_gpio_num = (gpio_num_t)i2s_ws_gpio_num->valuedouble;
+
+    const cJSON* i2s_dout_gpio_num = cJSON_GetObjectItem(data, "i2s_dout_gpio_num");
+    user_config.i2s_dout_gpio_num = (gpio_num_t)i2s_dout_gpio_num->valuedouble;
+
+    const cJSON* ir_rx_gpio_num = cJSON_GetObjectItem(data, "ir_rx_gpio_num");
+    user_config.ir_rx_gpio_num = (gpio_num_t)ir_rx_gpio_num->valuedouble;
+
+    const cJSON* ir_tx_gpio_num = cJSON_GetObjectItem(data, "ir_tx_gpio_num");
+    user_config.ir_tx_gpio_num = (gpio_num_t)ir_tx_gpio_num->valuedouble;
 }

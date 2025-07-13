@@ -150,6 +150,9 @@ void reset_imu()
 
     // Get DeviceID
     uint8_t devid = mpu.getDeviceID();
+    if (devid != 0x70) {
+        ESP_LOGE(TAG, "mpu6500 init failed.");
+    }
     ESP_LOGI(TAG, "devid=0x%x", devid);
 
     // Set the sample rate div=1

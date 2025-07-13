@@ -24,15 +24,11 @@ esp_err_t ws_send_data(uint8_t* data, uint16_t data_size, httpd_ws_type_t type)
     return ESP_OK;
 }
 
-MessageBufferHandle_t xMessageBufferReqSend;
+extern MessageBufferHandle_t xMessageBufferReqSend;
 void websocket_send_task(void* pvParameters)
 {
     BaseType_t core_id = xPortGetCoreID(); // 返回当前任务所在的核心 ID
     ESP_LOGI(TAG, "Task is running on core %d.", core_id);
-
-    // Create Message Buffer
-    xMessageBufferReqSend = xMessageBufferCreate(user_config.msg_buf_send_size);
-    configASSERT(xMessageBufferReqSend);
 
     uint8_t* buffer = (uint8_t*)malloc(user_config.ws_send_buf_size);
 

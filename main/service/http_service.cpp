@@ -255,8 +255,6 @@ esp_err_t options_handler(httpd_req_t* req)
 httpd_handle_t start_webserver()
 {
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
-    config.max_uri_handlers = 16;
-    config.stack_size = 1024 * 10;
     ESP_ERROR_CHECK(httpd_start(&server, &config));
 
     httpd_uri_t cors_options_uri = {

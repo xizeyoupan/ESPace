@@ -12,6 +12,14 @@ static void periodic_timer_callback(void* arg)
     button_ticks();
 }
 
+void into_sleep(void* btn)
+{
+    gpio_set_level(user_config.periph_pwr_gpio_num, 1);
+    ESP_LOGW(TAG, "Into sleep");
+    vTaskDelay(pdMS_TO_TICKS(100));
+    esp_deep_sleep_start();
+}
+
 void scan_button_task(void* pvParameters)
 {
     BaseType_t core_id = xPortGetCoreID(); // 返回当前任务所在的核心 ID
@@ -38,6 +46,7 @@ void scan_button_task(void* pvParameters)
 
     button_attach(&button1, PRESS_UP, btn_press_down_up_handler);
     button_attach(&button1, PRESS_DOWN, btn_press_down_up_handler);
+    button_attach(&button1, DOUBLE_CLICK, into_sleep);
 
     button_start(&button0);
     button_start(&button1);

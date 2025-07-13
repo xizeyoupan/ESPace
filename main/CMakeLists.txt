@@ -10,6 +10,7 @@ idf_component_register(
     "./task/wand_server_task.cpp"
     "./task/ws_task.cpp"
     "./task/ws2812_task.cpp"
+    "./task/ir_task.c"
     "./service/wifi_service.cpp"
     "./service/device_service.cpp"
     "./service/button_service.cpp"
@@ -18,10 +19,12 @@ idf_component_register(
     "./service/ws2812_service.cpp"
     "./service/mpu_service.cpp"
     "./service/tflite_service.cpp"
+    "./peripherals/ir_nec_encoder.c"
     INCLUDE_DIRS
     "."
     "./service"
     "./task"
+    "./peripherals"
 )
 
 # littlefs_create_partition_image(models ../flash_data FLASH_IN_PROJECT)

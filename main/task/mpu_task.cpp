@@ -4,7 +4,7 @@ static const char* TAG = "MPU_TASK";
 extern user_config_t user_config;
 
 extern MessageBufferHandle_t xMessageBufferReqSend;
-MessageBufferHandle_t xMessageBufferMPUOut2CNN;
+extern MessageBufferHandle_t xMessageBufferMPUOut2CNN;
 mpu_command_t received_command;
 EventGroupHandle_t x_mpu_event_group;
 
@@ -114,8 +114,6 @@ void mpu_task(void* pvParameters)
     ESP_LOGI(TAG, "Task is running on core %d.", core_id);
 
     x_mpu_event_group = xEventGroupCreate();
-    xMessageBufferMPUOut2CNN = xMessageBufferCreate(user_config.mpu_buf_out_to_cnn_size);
-    configASSERT(xMessageBufferMPUOut2CNN);
 
     const esp_timer_create_args_t periodic_timer_args = {
         .callback = &mpu_periodic_timer_callback,

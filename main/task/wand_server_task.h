@@ -9,7 +9,7 @@ extern "C" {
 
 void start_ap_mode();
 void start_sta_mode();
-void wand_server_task(void *pvParameters);
+void wand_server_task(void* pvParameters);
 
 #ifdef __cplusplus
 }

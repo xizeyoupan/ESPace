@@ -3,7 +3,7 @@
     "idf.openOcdConfigs": [
         "board/esp32-bridge.cfg"
     ],
-    "idf.portWin": "COM5",
+    "idf.portWin": "COM11",
     "idf.flashType": "UART",
     "files.associations": {
         "*.c": "c",
@@ -166,7 +166,10 @@
         "xfacet": "cpp",
         "xlocinfo": "cpp",
         "xlocmes": "cpp",
-        "xlocnum": "cpp"
+        "xlocnum": "cpp",
+        "i2s_stream.h": "c",
+        "user_define.h": "c",
+        "audio_type_def.h": "c"
     },
     "idf.port": "/dev/ttyUSB0",
     "idf.espIdfPath": "/home/mio/esp/v5.2.3/esp-idf",
@@ -175,4 +178,5 @@
     "idf.espAdfPathWin": "C:\\Users\\liuke\\.espressif\\esp-adf",
     "idf.toolsPathWin": "C:\\Users\\liuke\\.espressif",
     "idf.pythonInstallPath": "C:\\Users\\liuke\\.espressif\\tools\\idf-python\\3.11.2\\python.exe",
+    "liveServer.settings.port": 5560,
 }

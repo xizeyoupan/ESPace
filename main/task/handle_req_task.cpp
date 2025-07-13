@@ -6,7 +6,7 @@ extern MessageBufferHandle_t xMessageBufferReqSend;
 extern user_config_t user_config;
 extern mpu_command_t received_command;
 extern EventGroupHandle_t x_mpu_event_group;
-MessageBufferHandle_t xMessageBufferReqRecv;
+extern MessageBufferHandle_t xMessageBufferReqRecv;
 extern uint8_t* tflite_model_buf;
 
 #define FILE_LIST_STR_LEN 4096
@@ -17,10 +17,8 @@ void handle_req_task(void* pvParameters)
     BaseType_t core_id = xPortGetCoreID(); // 返回当前任务所在的核心 ID
     ESP_LOGI(TAG, "Task is running on core %d.", core_id);
 
-    xMessageBufferReqRecv = xMessageBufferCreate(user_config.msg_buf_recv_size);
-    configASSERT(xMessageBufferReqRecv);
-
     uint8_t* buffer = (uint8_t*)malloc(user_config.ws_recv_buf_size);
+    configASSERT(buffer);
 
     cJSON* monitor_json = NULL;
 

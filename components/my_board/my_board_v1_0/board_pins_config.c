@@ -22,26 +22,26 @@
  *
  */
 
-#include "esp_log.h"
-#include "driver/gpio.h"
-#include <string.h>
-#include "board.h"
 #include "audio_error.h"
 #include "audio_mem.h"
+#include "board.h"
+#include "driver/gpio.h"
+#include "esp_log.h"
 #include "soc/soc_caps.h"
+#include <string.h>
 
-static const char *TAG = "MY_BOARD_V1_0";
+#include "../../../main/user_define.h"
 
-esp_err_t get_i2c_pins(i2c_port_t port, i2c_config_t *i2c_config)
+static const char* TAG = "MY_BOARD_V1_0";
+extern user_config_t user_config;
+
+esp_err_t get_i2c_pins(i2c_port_t port, i2c_config_t* i2c_config)
 {
     AUDIO_NULL_CHECK(TAG, i2c_config, return ESP_FAIL);
-    if (port == I2C_NUM_0)
-    {
+    if (port == I2C_NUM_0) {
         i2c_config->sda_io_num = -1;
         i2c_config->scl_io_num = -1;
-    }
-    else
-    {
+    } else {
         i2c_config->sda_io_num = -1;
         i2c_config->scl_io_num = -1;
         ESP_LOGE(TAG, "i2c port %d is not supported", port);
@@ -50,26 +50,23 @@ esp_err_t get_i2c_pins(i2c_port_t port, i2c_config_t *i2c_config)
     return ESP_OK;
 }
 
-esp_err_t get_i2s_pins(int port, board_i2s_pin_t *i2s_config)
+esp_err_t get_i2s_pins(int port, board_i2s_pin_t* i2s_config)
 {
     AUDIO_NULL_CHECK(TAG, i2s_config, return ESP_FAIL);
-    if (port == 0)
-    {
+    ESP_LOGI(TAG, "Getting i2s pins");
+
+    if (port == 0) {
         i2s_config->mck_io_num = -1;
         i2s_config->data_in_num = -1;
-        i2s_config->bck_io_num = I2S_BCK_GPIO;
-        i2s_config->ws_io_num = I2S_WS_GPIO;
-        i2s_config->data_out_num = I2S_DATA_OUT_GPIO;
-    }
-    else if (port == 1)
-    {
+        i2s_config->bck_io_num = user_config.i2s_bck_gpio_num;
+        i2s_config->ws_io_num = user_config.i2s_ws_gpio_num;
+        i2s_config->data_out_num = user_config.i2s_dout_gpio_num;
+    } else if (port == 1) {
         i2s_config->bck_io_num = -1;
         i2s_config->ws_io_num = -1;
         i2s_config->data_out_num = -1;
         i2s_config->data_in_num = -1;
-    }
-    else
-    {
+    } else {
         memset(i2s_config, -1, sizeof(board_i2s_pin_t));
         ESP_LOGE(TAG, "i2s port %d is not supported", port);
         return ESP_FAIL;
@@ -78,7 +75,7 @@ esp_err_t get_i2s_pins(int port, board_i2s_pin_t *i2s_config)
     return ESP_OK;
 }
 
-esp_err_t get_spi_pins(spi_bus_config_t *spi_config, spi_device_interface_config_t *spi_device_interface_config)
+esp_err_t get_spi_pins(spi_bus_config_t* spi_config, spi_device_interface_config_t* spi_device_interface_config)
 {
     AUDIO_NULL_CHECK(TAG, spi_config, return ESP_FAIL);
     AUDIO_NULL_CHECK(TAG, spi_device_interface_config, return ESP_FAIL);

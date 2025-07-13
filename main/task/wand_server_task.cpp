@@ -1,9 +1,9 @@
 #include "wand_server_task.h"
 
 extern user_config_t user_config;
-static const char* TAG = "WAND_SERVER_TASK";
+static const char* TAG = "SERVER_TASK";
 /* FreeRTOS event group to signal when we are connected*/
-static EventGroupHandle_t s_wifi_event_group;
+EventGroupHandle_t s_wifi_event_group;
 
 const int WIFI_CONNECTED_BIT = BIT0;
 const int WIFI_FAIL_BIT = BIT1;
