@@ -12,7 +12,8 @@ idf_component_register(
     "./task/ws2812_task.cpp"
     "./task/ir_task.c"
     "./service/wifi_service.cpp"
-    "./service/device_service.cpp"
+    "./service/json_helper.cpp"
+    "./service/io_lock_service.cpp"
     "./service/button_service.cpp"
     "./service/http_service.cpp"
     "./service/littlefs_service.cpp"
@@ -20,6 +21,7 @@ idf_component_register(
     "./service/mpu_service.cpp"
     "./service/tflite_service.cpp"
     "./peripherals/ir_nec_encoder.c"
+    "./peripherals/ledec_pwm.cpp"
     INCLUDE_DIRS
     "."
     "./service"

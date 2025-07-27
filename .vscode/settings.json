@@ -89,7 +89,7 @@
         "config.h": "c",
         "user_config.h": "c",
         "wifi_service.h": "c",
-        "device_service.h": "c",
+        "json_helper.h": "c",
         "esp_event.h": "c",
         "http_controller.h": "c",
         "esp_chip_info.h": "c",
@@ -169,7 +169,8 @@
         "xlocnum": "cpp",
         "i2s_stream.h": "c",
         "user_define.h": "c",
-        "audio_type_def.h": "c"
+        "audio_type_def.h": "c",
+        "ledc_pwm.h": "c"
     },
     "idf.port": "/dev/ttyUSB0",
     "idf.espIdfPath": "/home/mio/esp/v5.2.3/esp-idf",

@@ -24,6 +24,7 @@
 #include "mdns.h"
 #include "multi_button.h"
 
+#include "esp_adc/adc_oneshot.h"
 #include "esp_clk_tree.h"
 #include "esp_err.h"
 #include "esp_event.h"
@@ -38,8 +39,10 @@
 #include "esp_timer.h"
 #include "esp_wifi.h"
 
+#include "driver/dac_cosine.h"
 #include "driver/gpio.h"
 #include "driver/i2c.h"
+#include "driver/ledc.h"
 #include "driver/rmt_tx.h"
 
 #include "freertos/FreeRTOS.h"
@@ -53,7 +56,8 @@
 #include "hal/efuse_ll.h"
 
 #include "service/button_service.h"
-#include "service/device_service.h"
+#include "service/json_helper.h"
+#include "service/io_lock_service.h"
 #include "service/http_service.h"
 #include "service/littlefs_service.h"
 #include "service/mpu_service.h"
@@ -70,6 +74,8 @@
 #include "task/wand_server_task.h"
 #include "task/ws2812_task.h"
 #include "task/ws_task.h"
+
+#include "peripherals/ledc_pwm.h"
 
 #include "nvs_flash.h"
 #include "nvs_util.h"

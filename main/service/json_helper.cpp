@@ -1,4 +1,4 @@
-#include "device_service.h"
+#include "json_helper.h"
 
 static const char* TAG = "DEVICE_SERVICE";
 extern user_config_t user_config;
@@ -233,4 +233,53 @@ void assign_user_config_from_json(const cJSON* data)
 
     const cJSON* ir_tx_gpio_num = cJSON_GetObjectItem(data, "ir_tx_gpio_num");
     user_config.ir_tx_gpio_num = (gpio_num_t)ir_tx_gpio_num->valuedouble;
+}
+
+cJSON* get_ledc_timer_config_json(int index)
+{
+    ledc_timer_config_t ledc_timer_config;
+    get_ledc_timer_config_by_index(index, &ledc_timer_config);
+    cJSON* ledc_timer_json = cJSON_CreateObject();
+    cJSON_AddNumberToObject(ledc_timer_json, "index", index);
+    cJSON_AddNumberToObject(ledc_timer_json, "speed_mode", ledc_timer_config.speed_mode);
+    cJSON_AddNumberToObject(ledc_timer_json, "duty_resolution", ledc_timer_config.duty_resolution);
+    cJSON_AddNumberToObject(ledc_timer_json, "freq_hz", ledc_timer_config.freq_hz);
+    cJSON_AddNumberToObject(ledc_timer_json, "clk_cfg", ledc_timer_config.clk_cfg);
+    return ledc_timer_json;
+}
+
+cJSON* get_ledc_channel_config_json(int index)
+{
+    ledc_channel_config_t ledc_channel_config;
+    ledc_timer_config_t ledc_timer_config;
+
+    get_ledc_channel_config_by_index(index, &ledc_channel_config);
+    get_ledc_timer_config_by_index(ledc_channel_config.timer_sel, &ledc_timer_config);
+    ledc_timer_bit_t duty_resolution = ledc_timer_config.duty_resolution;
+
+    cJSON* ledc_channel_json = cJSON_CreateObject();
+    cJSON_AddNumberToObject(ledc_channel_json, "index", index);
+    cJSON_AddNumberToObject(ledc_channel_json, "gpio_num", ledc_channel_config.gpio_num);
+    cJSON_AddNumberToObject(ledc_channel_json, "speed_mode", ledc_channel_config.speed_mode);
+    cJSON_AddNumberToObject(ledc_channel_json, "timer_sel", ledc_channel_config.timer_sel);
+    cJSON_AddNumberToObject(ledc_channel_json, "duty", ledc_channel_config.duty);
+    cJSON_AddNumberToObject(ledc_channel_json, "hpoint", ledc_channel_config.hpoint);
+    cJSON_AddNumberToObject(ledc_channel_json, "duty_resolution", duty_resolution);
+    return ledc_channel_json;
+}
+
+cJSON* get_imu_data_json()
+{
+    double roll, pitch, ax, ay, az, gx, gy, gz;
+    get_angle_and_m6(&roll, &pitch, &ax, &ay, &az, &gx, &gy, &gz);
+    cJSON* imu_data = cJSON_CreateObject();
+    cJSON_AddNumberToObject(imu_data, "roll", roll);
+    cJSON_AddNumberToObject(imu_data, "pitch", pitch);
+    cJSON_AddNumberToObject(imu_data, "ax", ax);
+    cJSON_AddNumberToObject(imu_data, "ay", ay);
+    cJSON_AddNumberToObject(imu_data, "az", az);
+    cJSON_AddNumberToObject(imu_data, "gx", gx);
+    cJSON_AddNumberToObject(imu_data, "gy", gy);
+    cJSON_AddNumberToObject(imu_data, "gz", gz);
+    return imu_data;
 }

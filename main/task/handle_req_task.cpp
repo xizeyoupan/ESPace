@@ -34,6 +34,7 @@ void handle_req_task(void* pvParameters)
         const cJSON* type = NULL;
         const cJSON* requestId = NULL;
         const cJSON* payload = NULL;
+        esp_err_t ret = ESP_OK;
 
         monitor_json = cJSON_Parse((char*)buffer);
         if (monitor_json == NULL) {
@@ -74,35 +75,19 @@ void handle_req_task(void* pvParameters)
 
         if (strcmp(type->valuestring, "get_device_info") == 0) {
             cJSON* device_info = get_device_info();
-            if (device_info == NULL) {
-                goto json_parse_end;
-            }
             cJSON_AddItemToObject(resp_payload, "data", device_info);
         } else if (strcmp(type->valuestring, "get_user_config") == 0) {
             cJSON* user_config_json = get_user_config_json();
-            if (user_config_json == NULL) {
-                goto json_parse_end;
-            }
             cJSON_AddItemToObject(resp_payload, "data", user_config_json);
         } else if (strcmp(type->valuestring, "get_wifi_info") == 0) {
             cJSON* wifi_info = get_wifi_info();
-            if (wifi_info == NULL) {
-                goto json_parse_end;
-            }
             cJSON_AddItemToObject(resp_payload, "data", wifi_info);
         } else if (strcmp(type->valuestring, "get_wifi_list") == 0) {
             cJSON* wifi_list = get_wifi_list();
-            if (wifi_list == NULL) {
-                goto json_parse_end;
-            }
             cJSON_AddItemToObject(resp_payload, "data", wifi_list);
         } else if (strcmp(type->valuestring, "get_state_info") == 0) {
             cJSON* task_state = get_task_state();
-            if (task_state == NULL) {
-                goto json_parse_end;
-            }
             cJSON_AddItemToObject(resp_payload, "data", task_state);
-
         } else if (strcmp(type->valuestring, "connect_wifi") == 0) {
             const cJSON* data = cJSON_GetObjectItem(payload, "data");
             const cJSON* ssid = cJSON_GetObjectItem(data, "ssid");
@@ -112,7 +97,6 @@ void handle_req_task(void* pvParameters)
 
             save_user_config();
             start_sta_mode();
-
         } else if (strcmp(type->valuestring, "update_user_config") == 0) {
             const cJSON* data = cJSON_GetObjectItem(payload, "data");
             assign_user_config_from_json(data);
@@ -127,17 +111,7 @@ void handle_req_task(void* pvParameters)
         } else if (strcmp(type->valuestring, "reboot") == 0) {
             esp_restart();
         } else if (strcmp(type->valuestring, "get_imu_data") == 0) {
-            double roll, pitch, ax, ay, az, gx, gy, gz;
-            get_angle_and_m6(&roll, &pitch, &ax, &ay, &az, &gx, &gy, &gz);
-            cJSON* imu_data = cJSON_CreateObject();
-            cJSON_AddNumberToObject(imu_data, "roll", roll);
-            cJSON_AddNumberToObject(imu_data, "pitch", pitch);
-            cJSON_AddNumberToObject(imu_data, "ax", ax);
-            cJSON_AddNumberToObject(imu_data, "ay", ay);
-            cJSON_AddNumberToObject(imu_data, "az", az);
-            cJSON_AddNumberToObject(imu_data, "gx", gx);
-            cJSON_AddNumberToObject(imu_data, "gy", gy);
-            cJSON_AddNumberToObject(imu_data, "gz", gz);
+            cJSON* imu_data = get_imu_data_json();
             cJSON_AddItemToObject(resp_payload, "data", imu_data);
         } else if (strcmp(type->valuestring, "reset_imu") == 0) {
             reset_imu();
@@ -199,6 +173,54 @@ void handle_req_task(void* pvParameters)
             xEventGroupSetBits(x_mpu_event_group, MPU_SAMPLING_READY_BIT);
         } else if (strcmp(type->valuestring, "stop_predict") == 0) {
             xEventGroupSetBits(x_mpu_event_group, MPU_SAMPLING_UNREADY_BIT);
+        } else if (strcmp(type->valuestring, "get_ledc_timer_config") == 0) {
+            const cJSON* data = cJSON_GetObjectItem(payload, "data");
+            const cJSON* index = cJSON_GetObjectItem(data, "index");
+
+            cJSON* ledc_timer_json = get_ledc_timer_config_json(index->valuedouble);
+            cJSON_AddItemToObject(resp_payload, "data", ledc_timer_json);
+        } else if (strcmp(type->valuestring, "set_ledc_timer_config") == 0) {
+            const cJSON* data = cJSON_GetObjectItem(payload, "data");
+            const cJSON* index = cJSON_GetObjectItem(data, "index");
+            const cJSON* speed_mode = cJSON_GetObjectItem(data, "speed_mode");
+            const cJSON* freq_hz = cJSON_GetObjectItem(data, "freq_hz");
+
+            ret = set_ledc_timer_config_by_index(index->valuedouble, (ledc_mode_t)speed_mode->valuedouble, freq_hz->valuedouble);
+            if (ret != ESP_OK) {
+                cJSON_AddStringToObject(resp_payload, "error", esp_err_to_name(ret));
+            } else {
+                cJSON* ledc_timer_json = get_ledc_timer_config_json(index->valuedouble);
+                cJSON_AddItemToObject(resp_payload, "data", ledc_timer_json);
+            }
+        } else if (strcmp(type->valuestring, "get_ledc_channel_config") == 0) {
+            const cJSON* data = cJSON_GetObjectItem(payload, "data");
+            const cJSON* index = cJSON_GetObjectItem(data, "index");
+
+            cJSON* ledc_channel_json = get_ledc_channel_config_json(index->valuedouble);
+            cJSON_AddItemToObject(resp_payload, "data", ledc_channel_json);
+        } else if (strcmp(type->valuestring, "set_ledc_channel_config") == 0) {
+            const cJSON* data = cJSON_GetObjectItem(payload, "data");
+            const cJSON* index = cJSON_GetObjectItem(data, "index");
+            const cJSON* gpio_num = cJSON_GetObjectItem(data, "gpio_num");
+            const cJSON* timer_sel = cJSON_GetObjectItem(data, "timer_sel");
+            const cJSON* speed_mode = cJSON_GetObjectItem(data, "speed_mode");
+            const cJSON* duty = cJSON_GetObjectItem(data, "duty");
+            const cJSON* hpoint = cJSON_GetObjectItem(data, "hpoint");
+
+            ret = set_ledc_channel_config_by_index(
+                index->valuedouble,
+                gpio_num->valuedouble,
+                (ledc_timer_t)timer_sel->valuedouble,
+                (ledc_mode_t)speed_mode->valuedouble,
+                duty->valuedouble,
+                hpoint->valuedouble);
+
+            if (ret != ESP_OK) {
+                cJSON_AddStringToObject(resp_payload, "error", esp_err_to_name(ret));
+            } else {
+                cJSON* ledc_channel_json = get_ledc_channel_config_json(index->valuedouble);
+                cJSON_AddItemToObject(resp_payload, "data", ledc_channel_json);
+            }
         }
 
         resp_string = cJSON_Print(resp_json);

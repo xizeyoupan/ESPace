@@ -15,10 +15,10 @@ jobs:
           submodules: "recursive"
 
       - name: replace commit id
-        run: sed -i "s/GIT_COMMIT_SHA1/$(git log -n 1 --pretty=format:'%h')/" main/service/device_service.cpp
+        run: sed -i "s/GIT_COMMIT_SHA1/$(git log -n 1 --pretty=format:'%h')/" main/service/json_helper.cpp
 
       - name: esp-idf build
-        run: docker run --rm -v $PWD:/project -w /project -u $UID -e HOME=/tmp intemd/esp-adf:v2.7-idf-v5.2-esp32 idf.py build
+        run: docker run --rm -v $PWD:/project -w /project -u $UID -e HOME=/tmp intemd/esp-adf:v2.7-idf-v5.2-esp32 sh -c "idf.py build && cd build && esptool.py --chip ESP32 merge_bin -o merged-flash.bin @flash_args"
 
       - name: Collect release files
         run: |
@@ -27,6 +27,7 @@ jobs:
           cp build/partition_table/partition-table.bin release/
           cp build/ota_data_initial.bin release/
           cp build/${{ github.event.repository.name }}.bin release/
+          cp build/merged-flash.bin release/
 
       - name: Upload artifacts to GitHub Actions
         uses: actions/upload-artifact@v4
