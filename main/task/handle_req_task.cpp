@@ -198,6 +198,17 @@ void handle_req_task(void* pvParameters)
 
             cJSON* ledc_channel_json = get_ledc_channel_config_json(index->valuedouble);
             cJSON_AddItemToObject(resp_payload, "data", ledc_channel_json);
+        } else if (strcmp(type->valuestring, "clear_ledc_channel_config") == 0) {
+            const cJSON* data = cJSON_GetObjectItem(payload, "data");
+            const cJSON* index = cJSON_GetObjectItem(data, "index");
+
+            ret = clear_ledc_channel_config_by_index(index->valuedouble);
+            if (ret != ESP_OK) {
+                cJSON_AddStringToObject(resp_payload, "error", esp_err_to_name(ret));
+            } else {
+                cJSON* ledc_channel_json = get_ledc_channel_config_json(index->valuedouble);
+                cJSON_AddItemToObject(resp_payload, "data", ledc_channel_json);
+            }
         } else if (strcmp(type->valuestring, "set_ledc_channel_config") == 0) {
             const cJSON* data = cJSON_GetObjectItem(payload, "data");
             const cJSON* index = cJSON_GetObjectItem(data, "index");

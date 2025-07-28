@@ -20,7 +20,23 @@ void io_mutex_init(void)
     io_mutex_lock(29, INVALID_HOLDER, -1, portMAX_DELAY);
     io_mutex_lock(30, INVALID_HOLDER, -1, portMAX_DELAY);
     io_mutex_lock(31, INVALID_HOLDER, -1, portMAX_DELAY);
-   
+
+    // 1, 3: usb bridge
+    io_mutex_lock(1, USB_BRIDGE_HOLDER, -1, portMAX_DELAY);
+    io_mutex_lock(3, USB_BRIDGE_HOLDER, -1, portMAX_DELAY);
+
+    /*
+    6-11: flash, 16-17: psram
+    */
+    io_mutex_lock(6, FLASH_HOLDER, -1, portMAX_DELAY);
+    io_mutex_lock(7, FLASH_HOLDER, -1, portMAX_DELAY);
+    io_mutex_lock(8, FLASH_HOLDER, -1, portMAX_DELAY);
+    io_mutex_lock(9, FLASH_HOLDER, -1, portMAX_DELAY);
+    io_mutex_lock(10, FLASH_HOLDER, -1, portMAX_DELAY);
+    io_mutex_lock(11, FLASH_HOLDER, -1, portMAX_DELAY);
+    io_mutex_lock(16, PSRAM_HOLDER, -1, portMAX_DELAY);
+    io_mutex_lock(17, PSRAM_HOLDER, -1, portMAX_DELAY);
+
     io_mutex_lock(user_config.up_key_gpio_num, UPKEY_HOLDER, 0, portMAX_DELAY);
     io_mutex_lock(user_config.down_key_gpio_num, DOWNKEY_HOLDER, 0, portMAX_DELAY);
     io_mutex_lock(user_config.mpu_sda_gpio_num, MPU_SDA_HOLDER, 0, portMAX_DELAY);
@@ -55,7 +71,7 @@ BaseType_t io_mutex_lock(int index, const char* holder, int channel, TickType_t 
     return pdFALSE;
 }
 
-BaseType_t io_mutex_unlock(int index, const char* holder)
+BaseType_t io_mutex_unlock(int index, const char* holder, int channel)
 {
     if (index < 0 || index >= IO_MUTEX_ARRAY_SIZE)
         return pdFALSE;
@@ -64,11 +80,13 @@ BaseType_t io_mutex_unlock(int index, const char* holder)
 
     // 获取 meta_lock 来检查持有者是否匹配
     if (xSemaphoreTake(io_mutex_array[index].meta_lock, portMAX_DELAY) == pdTRUE) {
-        if (strncmp(io_mutex_array[index].holder, holder, sizeof(io_mutex_array[index].holder)) == 0) {
+        if (strncmp(io_mutex_array[index].holder, holder, sizeof(io_mutex_array[index].holder)) == 0 && io_mutex_array[index].channel == channel) {
             // 如果是当前模块ID，释放锁
             io_mutex_array[index].holder[0] = '\0'; // 清空模块ID
             io_mutex_array[index].channel = -1; // 清空通道信息
             success = pdTRUE;
+        } else {
+            ESP_LOGE(TAG, "Unlock failed: holder mismatch. Expected holder %s, channel %d, got holder %s, channel %d", io_mutex_array[index].holder, io_mutex_array[index].channel, holder, channel);
         }
         xSemaphoreGive(io_mutex_array[index].meta_lock);
     }
@@ -78,6 +96,7 @@ BaseType_t io_mutex_unlock(int index, const char* holder)
         xSemaphoreGive(io_mutex_array[index].mutex);
     }
 
+    ESP_LOGI(TAG, "IO mutex unlocked for gpio %d by holder %s on channel %d", index, holder, channel);
     return success;
 }
 

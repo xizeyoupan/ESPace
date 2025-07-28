@@ -40,7 +40,7 @@ esp_err_t set_ledc_timer_config_by_index(int index, ledc_mode_t speed, uint32_t 
         ret = ledc_timer_pause(ledc_timers[index].speed_mode, ledc_timers[index].timer_num);
         if (ret != ESP_OK) {
             ESP_LOGE(TAG, "Failed to pause LEDC timer: %s", esp_err_to_name(ret));
-            return ret;
+            // return ret;
         }
         ret = ledc_timer_config(&ledc_timers[index]);
         if (ret != ESP_OK) {
@@ -76,14 +76,27 @@ esp_err_t set_ledc_channel_config_by_index(int index, int gpio_num, ledc_timer_t
 
     char io_holder[HOLDER_STRING_SIZE];
     int io_holder_channel;
-    io_mutex_get_status(gpio_num, io_holder, &io_holder_channel);
-    if (strlen(io_holder) == 0) {
-        if (io_mutex_lock(gpio_num, LEDC_PWM_HOLDER, index, portMAX_DELAY) != pdTRUE) {
-            ESP_LOGE(TAG, "Failed to lock GPIO %d for LEDC PWM", gpio_num);
+    int io_of_channel = ledc_channels[index].gpio_num;
+
+    io_mutex_get_status(io_of_channel, io_holder, &io_holder_channel);
+
+    if (
+        (io_of_channel == gpio_num)
+        || (io_of_channel != gpio_num && (strlen(io_holder) == 0 || (strcmp(io_holder, LEDC_PWM_HOLDER) != 0 || io_holder_channel != index)))) {
+
+        io_mutex_get_status(gpio_num, io_holder, &io_holder_channel);
+        if (strlen(io_holder) == 0) {
+            if (io_mutex_lock(gpio_num, LEDC_PWM_HOLDER, index, portMAX_DELAY) != pdTRUE) {
+                ESP_LOGE(TAG, "Failed to lock GPIO %d for LEDC PWM", gpio_num);
+                return ESP_ERR_INVALID_STATE;
+            }
+        } else if (strcmp(io_holder, LEDC_PWM_HOLDER) != 0 || io_holder_channel != index) {
+            ESP_LOGE(TAG, "GPIO %d is already locked by %s on channel %d", gpio_num, io_holder, io_holder_channel);
             return ESP_ERR_INVALID_STATE;
         }
-    } else if (strcmp(io_holder, LEDC_PWM_HOLDER) != 0 || io_holder_channel != index) {
-        ESP_LOGE(TAG, "GPIO %d is already locked by %s on channel %d", gpio_num, io_holder, io_holder_channel);
+
+    } else if (io_of_channel != gpio_num) {
+        ESP_LOGE(TAG, "Stop LEDC PWM on channel %d to release GPIO %d", index, io_of_channel);
         return ESP_ERR_INVALID_STATE;
     }
 
@@ -100,6 +113,26 @@ esp_err_t set_ledc_channel_config_by_index(int index, int gpio_num, ledc_timer_t
         ESP_LOGE(TAG, "Failed to set LEDC channel config: %s", esp_err_to_name(ret));
     } else {
         ESP_LOGI(TAG, "LEDC channel %d configured successfully", index);
+    }
+    return ret;
+}
+
+esp_err_t clear_ledc_channel_config_by_index(int index)
+{
+    if (index < 0 || index >= LEDC_CHANNEL_NUM) {
+        ESP_LOGE(TAG, "Invalid LEDC channel index: %d", index);
+        return ESP_ERR_INVALID_ARG;
+    }
+    esp_err_t ret = ESP_OK;
+
+    ret = ledc_stop(ledc_channels[index].speed_mode, ledc_channels[index].channel, 0);
+    io_mutex_unlock(ledc_channels[index].gpio_num, LEDC_PWM_HOLDER, index);
+
+    memset(&ledc_channels[index], 0, sizeof(ledc_channel_config_t));
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to stop LEDC channel %d: %s", index, esp_err_to_name(ret));
+    } else {
+        ESP_LOGI(TAG, "LEDC channel %d cleared successfully", index);
     }
     return ret;
 }

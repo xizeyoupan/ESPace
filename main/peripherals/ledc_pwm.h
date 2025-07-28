@@ -14,6 +14,7 @@ void get_ledc_timer_config_by_index(int index, ledc_timer_config_t* config);
 esp_err_t set_ledc_timer_config_by_index(int index, ledc_mode_t speed, uint32_t freq_hz);
 void get_ledc_channel_config_by_index(int index, ledc_channel_config_t* config);
 esp_err_t set_ledc_channel_config_by_index(int index, int gpio_num, ledc_timer_t timer_sel, ledc_mode_t speed_mode, uint32_t duty, int hpoint);
+esp_err_t clear_ledc_channel_config_by_index(int index);
 
 
 #ifdef __cplusplus

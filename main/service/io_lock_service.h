@@ -11,6 +11,8 @@ extern "C" {
 #define HOLDER_STRING_SIZE 32
 
 #define INVALID_HOLDER "INVALID_HOLDER"
+#define PSRAM_HOLDER "PSRAM"
+#define FLASH_HOLDER "FLASH"
 #define UPKEY_HOLDER "UP_KEY"
 #define DOWNKEY_HOLDER "DOWN_KEY"
 #define MPU_SDA_HOLDER "MPU_SDA"
@@ -23,6 +25,7 @@ extern "C" {
 #define IR_RX_HOLDER "IR_RX"
 #define IR_TX_HOLDER "IR_TX"
 #define LEDC_PWM_HOLDER "LEDC_PWM"
+#define USB_BRIDGE_HOLDER "USB_BRIDGE"
 
 typedef struct {
     SemaphoreHandle_t mutex; // 实际的资源锁
@@ -33,7 +36,7 @@ typedef struct {
 
 void io_mutex_init(void);
 BaseType_t io_mutex_lock(int index, const char* holder, int channel, TickType_t timeout_ticks);
-BaseType_t io_mutex_unlock(int index, const char* holder);
+BaseType_t io_mutex_unlock(int index, const char* holder, int channel);
 void io_mutex_get_status(int index, char* holder, int* channel);
 
 #ifdef __cplusplus
