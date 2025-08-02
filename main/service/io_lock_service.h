@@ -24,8 +24,9 @@ extern "C" {
 #define I2S_DOUT_HOLDER "I2S_DOUT"
 #define IR_RX_HOLDER "IR_RX"
 #define IR_TX_HOLDER "IR_TX"
-#define LEDC_PWM_HOLDER "LEDC_PWM"
 #define USB_BRIDGE_HOLDER "USB_BRIDGE"
+#define LEDC_PWM_HOLDER "LEDC_PWM"
+#define DAC_COSINE_HOLDER "DAC_COSINE"
 
 typedef struct {
     SemaphoreHandle_t mutex; // 实际的资源锁

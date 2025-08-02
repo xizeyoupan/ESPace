@@ -74,7 +74,7 @@ esp_err_t set_ledc_channel_config_by_index(int index, int gpio_num, ledc_timer_t
     }
     esp_err_t ret = ESP_OK;
 
-    char io_holder[HOLDER_STRING_SIZE];
+    char io_holder[HOLDER_STRING_SIZE] = { 0 };
     int io_holder_channel;
     int io_of_channel = ledc_channels[index].gpio_num;
 

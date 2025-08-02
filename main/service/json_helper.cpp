@@ -283,3 +283,16 @@ cJSON* get_imu_data_json()
     cJSON_AddNumberToObject(imu_data, "gz", gz);
     return imu_data;
 }
+
+cJSON* get_dac_cosine_config_json(int index)
+{
+    dac_cosine_config_t dac_cosine_config;
+    get_cosine_config_by_index(index, &dac_cosine_config);
+    cJSON* dac_cosine_config_json = cJSON_CreateObject();
+    cJSON_AddNumberToObject(dac_cosine_config_json, "index", index);
+    cJSON_AddNumberToObject(dac_cosine_config_json, "freq_hz", dac_cosine_config.freq_hz);
+    cJSON_AddNumberToObject(dac_cosine_config_json, "atten", dac_cosine_config.atten);
+    cJSON_AddNumberToObject(dac_cosine_config_json, "phase", dac_cosine_config.phase);
+    cJSON_AddNumberToObject(dac_cosine_config_json, "offset", dac_cosine_config.offset);
+    return dac_cosine_config_json;
+}

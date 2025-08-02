@@ -232,6 +232,36 @@ void handle_req_task(void* pvParameters)
                 cJSON* ledc_channel_json = get_ledc_channel_config_json(index->valuedouble);
                 cJSON_AddItemToObject(resp_payload, "data", ledc_channel_json);
             }
+        } else if (strcmp(type->valuestring, "set_dac_cosine_channel") == 0) {
+            const cJSON* data = cJSON_GetObjectItem(payload, "data");
+            const cJSON* index = cJSON_GetObjectItem(data, "index");
+            const cJSON* freq_hz = cJSON_GetObjectItem(data, "freq_hz");
+            const cJSON* atten = cJSON_GetObjectItem(data, "atten");
+            const cJSON* phase = cJSON_GetObjectItem(data, "phase");
+            const cJSON* offset = cJSON_GetObjectItem(data, "offset");
+            ret = start_cosine_by_index(
+                index->valuedouble,
+                freq_hz->valuedouble,
+                (dac_cosine_atten_t)atten->valuedouble,
+                (dac_cosine_phase_t)phase->valuedouble,
+                offset->valuedouble);
+            cJSON* dac_cosine_config = get_dac_cosine_config_json(index->valuedouble);
+            cJSON_AddItemToObject(resp_payload, "data", dac_cosine_config);
+
+        } else if (strcmp(type->valuestring, "get_dac_cosine_config") == 0) {
+            const cJSON* data = cJSON_GetObjectItem(payload, "data");
+            const cJSON* index = cJSON_GetObjectItem(data, "index");
+
+            cJSON* dac_cosine_config = get_dac_cosine_config_json(index->valuedouble);
+            cJSON_AddItemToObject(resp_payload, "data", dac_cosine_config);
+
+        } else if (strcmp(type->valuestring, "clear_dac_cosine_channel") == 0) {
+            const cJSON* data = cJSON_GetObjectItem(payload, "data");
+            const cJSON* index = cJSON_GetObjectItem(data, "index");
+            ret = stop_cosine_by_index(index->valuedouble);
+
+            cJSON* dac_cosine_config = get_dac_cosine_config_json(index->valuedouble);
+            cJSON_AddItemToObject(resp_payload, "data", dac_cosine_config);
         }
 
         resp_string = cJSON_Print(resp_json);

@@ -76,6 +76,7 @@
 #include "task/ws_task.h"
 
 #include "peripherals/ledc_pwm.h"
+#include "peripherals/cosine_wave.h"
 
 #include "nvs_flash.h"
 #include "nvs_util.h"

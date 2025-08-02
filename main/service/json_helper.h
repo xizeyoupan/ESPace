@@ -14,6 +14,7 @@ void assign_user_config_from_json(const cJSON* data);
 cJSON* get_ledc_timer_config_json(int index);
 cJSON* get_ledc_channel_config_json(int index);
 cJSON* get_imu_data_json();
+cJSON* get_dac_cosine_config_json(int index);
 
 #ifdef __cplusplus
 }

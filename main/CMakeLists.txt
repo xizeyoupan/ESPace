@@ -22,6 +22,7 @@ idf_component_register(
     "./service/tflite_service.cpp"
     "./peripherals/ir_nec_encoder.c"
     "./peripherals/ledec_pwm.cpp"
+    "./peripherals/cosine_wave.cpp"
     INCLUDE_DIRS
     "."
     "./service"
