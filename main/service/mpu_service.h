@@ -1,7 +1,7 @@
 #ifndef __MPU_SERVICE_H__
 #define __MPU_SERVICE_H__
 
-#include "user_config.h"
+#include "stdint.h"
 
 #ifdef __cplusplus
 extern "C" {

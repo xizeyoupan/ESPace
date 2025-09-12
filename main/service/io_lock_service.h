@@ -1,7 +1,8 @@
 #ifndef __IO_LOCK_SERVICE_H__
 #define __IO_LOCK_SERVICE_H__
 
-#include "user_config.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 
 #ifdef __cplusplus
 extern "C" {

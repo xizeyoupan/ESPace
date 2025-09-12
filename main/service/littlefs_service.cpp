@@ -1,6 +1,19 @@
 #include "littlefs_service.h"
 #define MAX_PATH_SIZE 512
 
+#include "espace_define.h"
+
+#include "esp_err.h"
+#include "esp_littlefs.h"
+#include "esp_log.h"
+
+#include "stdint.h"
+#include "string.h"
+
+#include <dirent.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 static const char* TAG = "LITTLEFS_SERVICE";
 
 char full_path[MAX_PATH_SIZE];

@@ -1,5 +1,19 @@
 #include "ws2812_task.h"
 
+#include "espace_define.h"
+
+#include "esp_err.h"
+#include "esp_log.h"
+
+#include "stdint.h"
+#include "string.h"
+
+#include "freertos/FreeRTOS.h"
+#include "freertos/event_groups.h"
+#include "freertos/semphr.h"
+
+#include "service/ws2812_service.h"
+
 static const char* TAG = "WS2812_TASK";
 extern user_config_t user_config;
 extern uint32_t target_color;

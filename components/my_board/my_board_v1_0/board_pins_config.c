@@ -30,7 +30,7 @@
 #include "soc/soc_caps.h"
 #include <string.h>
 
-#include "../../../main/user_define.h"
+#include "../../../main/espace_define.h"
 
 static const char* TAG = "MY_BOARD_V1_0";
 extern user_config_t user_config;
@@ -62,10 +62,11 @@ esp_err_t get_i2s_pins(int port, board_i2s_pin_t* i2s_config)
         i2s_config->ws_io_num = user_config.i2s_ws_gpio_num;
         i2s_config->data_out_num = user_config.i2s_dout_gpio_num;
     } else if (port == 1) {
-        i2s_config->bck_io_num = -1;
-        i2s_config->ws_io_num = -1;
-        i2s_config->data_out_num = -1;
+        i2s_config->mck_io_num = -1;
         i2s_config->data_in_num = -1;
+        i2s_config->bck_io_num = user_config.i2s_bck_gpio_num;
+        i2s_config->ws_io_num = user_config.i2s_ws_gpio_num;
+        i2s_config->data_out_num = user_config.i2s_dout_gpio_num;
     } else {
         memset(i2s_config, -1, sizeof(board_i2s_pin_t));
         ESP_LOGE(TAG, "i2s port %d is not supported", port);

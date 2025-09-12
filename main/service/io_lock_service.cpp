@@ -1,5 +1,13 @@
 #include "io_lock_service.h"
 
+#include "espace_define.h"
+
+#include "esp_err.h"
+#include "esp_log.h"
+
+#include "stdint.h"
+#include "string.h"
+
 static const char* TAG = "IO_LOCK_SERVICE";
 extern user_config_t user_config;
 

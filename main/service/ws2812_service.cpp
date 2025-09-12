@@ -1,5 +1,19 @@
 #include "ws2812_service.h"
 
+#include "espace_define.h"
+
+#include "esp_err.h"
+#include "esp_log.h"
+
+#include "stdint.h"
+#include "string.h"
+
+#include "freertos/FreeRTOS.h"
+#include "freertos/event_groups.h"
+#include "freertos/semphr.h"
+
+#include "driver/rmt_tx.h"
+
 // WS2812 时序定义（单位：纳秒）
 #define T0H 300 // 逻辑 0 高电平时间
 #define T0L 900 // 逻辑 0 低电平时间
@@ -56,7 +70,7 @@ void ws2812_init()
 
     rmt_tx_channel_config_t tx_chan_config = {};
     tx_chan_config.clk_src = RMT_CLK_SRC_DEFAULT;
-    tx_chan_config.gpio_num = user_config.ws2812_gpio_num;
+    tx_chan_config.gpio_num = gpio_num_t(user_config.ws2812_gpio_num);
     tx_chan_config.mem_block_symbols = 64; // increase the block size can make the LED less flickering
     tx_chan_config.resolution_hz = 10 * 1000 * 1000; // 10 MHz（100 ns 分辨率）,
     tx_chan_config.trans_queue_depth = 4; // set the number of transactions that can be pending in the background

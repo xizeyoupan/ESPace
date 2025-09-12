@@ -13,11 +13,11 @@
 #include "audio_pipeline.h"
 #include "board.h"
 #include "filter_resample.h"
-#include "i2s_stream.h"
 #include "http_stream.h"
+#include "i2s_stream.h"
+#include "mp3_decoder.h"
 #include "nvs_flash.h"
 #include "periph_touch.h"
-#include "mp3_decoder.h"
 
 static const char* TAG = "BLUETOOTH_EXAMPLE";
 static esp_periph_handle_t bt_periph = NULL;
@@ -53,6 +53,7 @@ void play_mp3_task(void* pvParameters)
     ESP_LOGI(TAG, "[4] Create i2s stream to write data to codec chip");
     i2s_stream_cfg_t i2s_cfg = I2S_STREAM_CFG_DEFAULT();
     i2s_cfg.type = AUDIO_STREAM_WRITER;
+    i2s_cfg.chan_cfg.id = I2S_NUM_1;
     ESP_LOGI(TAG, "[4.0.1] Create i2s stream to write data to codec chip");
 
     i2s_stream_writer = i2s_stream_init(&i2s_cfg);
@@ -98,7 +99,7 @@ void play_mp3_task(void* pvParameters)
 
     ESP_LOGI(TAG, "[ 8 ] Listen for all pipeline events");
 
-    uint8_t volume;
+    int volume;
     audio_hal_get_volume(board_handle->audio_hal, &volume);
     ESP_LOGI(TAG, "volume: %u", volume);
 

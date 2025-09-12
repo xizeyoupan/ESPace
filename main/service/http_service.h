@@ -1,7 +1,7 @@
 #ifndef __HTTP_SERVICE_H__
 #define __HTTP_SERVICE_H__
 
-#include "user_config.h"
+#include "esp_http_server.h"
 
 #ifdef __cplusplus
 extern "C" {

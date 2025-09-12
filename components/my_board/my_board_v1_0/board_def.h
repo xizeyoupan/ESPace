@@ -38,7 +38,7 @@
 
 #define SDCARD_OPEN_FILE_NUM_MAX 5
 
-#define BOARD_PA_GAIN (10) /* Power amplifier gain defined by board (dB) */
+#define BOARD_PA_GAIN (-1) /* Power amplifier gain defined by board (dB) */
 
 #define SDCARD_PWR_CTRL -1
 #define ESP_SD_PIN_CLK -1
@@ -85,7 +85,7 @@ extern audio_hal_func_t AUDIO_NEW_CODEC_DEFAULT_HANDLE;
     },                                       \
 };
 
-#define INPUT_KEY_NUM 4 /* You need to define the number of input buttons on your board */
+#define INPUT_KEY_NUM -1 /* You need to define the number of input buttons on your board */
 
 #define INPUT_KEY_DEFAULT_INFO() {            \
     {                                         \

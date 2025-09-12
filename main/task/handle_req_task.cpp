@@ -1,5 +1,35 @@
 #include "handle_req_task.h"
 
+#include "espace_define.h"
+
+#include "esp_err.h"
+#include "esp_log.h"
+
+#include "stdint.h"
+#include "string.h"
+
+#include "freertos/FreeRTOS.h"
+#include "freertos/event_groups.h"
+#include "freertos/message_buffer.h"
+
+#include "task/mpu_task.h"
+#include "task/wand_server_task.h"
+
+#include "service/http_service.h"
+#include "service/json_helper.h"
+#include "service/littlefs_service.h"
+#include "service/mpu_service.h"
+#include "service/tflite_service.h"
+#include "service/wifi_service.h"
+
+#include "peripherals/cosine_wave.h"
+#include "peripherals/func_wave.h"
+#include "peripherals/ledc_pwm.h"
+
+#include "nvs_util.h"
+
+#include "cJSON.h"
+
 static const char* TAG = "HANDLE_REQ_TASK";
 
 extern MessageBufferHandle_t xMessageBufferReqSend;
@@ -262,6 +292,11 @@ void handle_req_task(void* pvParameters)
 
             cJSON* dac_cosine_config = get_dac_cosine_config_json(index->valuedouble);
             cJSON_AddItemToObject(resp_payload, "data", dac_cosine_config);
+        } else if (strcmp(type->valuestring, "set_dac_points") == 0) {
+            const cJSON* data = cJSON_GetObjectItem(payload, "data");
+            const cJSON* freq = cJSON_GetObjectItem(data, "freq");
+            load_dac_cont_data_from_json(data);
+            dac_continuous_by_dma(freq->valuedouble);
         }
 
         resp_string = cJSON_Print(resp_json);

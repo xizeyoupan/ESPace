@@ -1,5 +1,21 @@
 #include "http_service.h"
 
+#include "espace_define.h"
+
+#include "esp_err.h"
+#include "esp_http_server.h"
+#include "esp_log.h"
+#include "esp_ota_ops.h"
+
+#include "stdint.h"
+#include "string.h"
+
+#include "freertos/FreeRTOS.h"
+#include "freertos/message_buffer.h"
+
+#include "service/littlefs_service.h"
+#include "service/tflite_service.h"
+
 #define MIN(a, b) (a) < (b) ? (a) : (b)
 
 static const char* TAG = "HTTP_SERVICE";

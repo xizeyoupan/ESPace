@@ -1,5 +1,14 @@
 #include "wifi_service.h"
 
+#include "espace_define.h"
+
+#include "esp_err.h"
+#include "esp_log.h"
+#include "esp_wifi.h"
+
+#include "stdint.h"
+#include "string.h"
+
 extern user_config_t user_config;
 static const char* TAG = "WIFI_SERVICE";
 

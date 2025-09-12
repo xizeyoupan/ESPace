@@ -1,7 +1,7 @@
 #ifndef __TFLITE_SERVICE_H__
 #define __TFLITE_SERVICE_H__
 
-#include "user_config.h"
+#include "tensorflow/lite/core/c/common.h"
 
 #ifdef __cplusplus
 extern "C" {

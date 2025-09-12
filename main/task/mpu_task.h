@@ -1,13 +1,9 @@
 #ifndef __MPU_TASK_H__
 #define __MPU_TASK_H__
 
-#include "user_config.h"
+#include "esp_bit_defs.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-void mpu_task(void* pvParameters);
+#include "stdint.h"
 
 typedef enum {
     MPU_COMMAND_TYPE_CLEAR,
@@ -21,7 +17,7 @@ typedef enum {
     MODEL_TYPE_PERIODIC,
 } model_type_enum;
 
-#pragma pack(1)
+#pragma pack(push, 1)
 typedef struct
 {
     char caller[32]; // 调用者
@@ -33,11 +29,18 @@ typedef struct
     uint8_t send_to_ws;
     uint8_t need_predict; // 是否需要预测
 } mpu_command_t;
+#pragma pack(pop)
 
 #define MPU_SAMPLING_READY_BIT BIT0
 #define MPU_SAMPLING_UNREADY_BIT BIT1
 #define MPU_SAMPLING_START_BIT BIT2
 #define MPU_SAMPLING_STOP_BIT BIT3
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void mpu_task(void* pvParameters);
 
 #ifdef __cplusplus
 }

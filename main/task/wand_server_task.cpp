@@ -1,5 +1,39 @@
 #include "wand_server_task.h"
 
+#include "espace_define.h"
+
+#include "esp_err.h"
+#include "esp_event.h"
+#include "esp_log.h"
+#include "esp_mac.h"
+#include "esp_netif.h"
+#include "esp_wifi.h"
+
+#include "mdns.h"
+
+#include "stdint.h"
+#include "string.h"
+
+#include "freertos/FreeRTOS.h"
+#include "freertos/event_groups.h"
+#include "freertos/task.h"
+
+#include "service/http_service.h"
+#include "service/ws2812_service.h"
+
+#include "esp_event.h"
+#include "esp_log.h"
+#include "esp_system.h"
+#include "esp_wifi.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/event_groups.h"
+#include "freertos/task.h"
+#include "nvs_flash.h"
+#include <string.h>
+
+#include "lwip/err.h"
+#include "lwip/sys.h"
+
 extern user_config_t user_config;
 static const char* TAG = "SERVER_TASK";
 /* FreeRTOS event group to signal when we are connected*/

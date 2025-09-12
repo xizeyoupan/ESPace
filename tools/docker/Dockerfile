@@ -125,6 +125,9 @@ ENV IDF_PYTHON_CHECK_CONSTRAINTS=no
 # Ccache is installed, enable it by default
 ENV IDF_CCACHE_ENABLE=1
 
+WORKDIR $IDF_PATH
+RUN git apply /opt/esp/adf/idf_patches/idf_v5.4_freertos.patch
+
 COPY entrypoint.sh /opt/esp/entrypoint.sh
 RUN chmod +x /opt/esp/entrypoint.sh
 ENTRYPOINT [ "/opt/esp/entrypoint.sh" ]

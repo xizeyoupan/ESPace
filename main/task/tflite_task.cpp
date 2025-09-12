@@ -1,5 +1,23 @@
 #include "tflite_task.h"
 
+#include "espace_define.h"
+
+#include "esp_err.h"
+#include "esp_log.h"
+
+#include "stdint.h"
+#include "string.h"
+
+#include "freertos/FreeRTOS.h"
+#include "freertos/message_buffer.h"
+#include "freertos/task.h"
+
+#include "task/mpu_task.h"
+
+#include "cJSON.h"
+
+#include "service/tflite_service.h"
+
 static const char* TAG = "TFLITE_TASK";
 extern MessageBufferHandle_t xMessageBufferMPUOut2CNN, xMessageBufferReqSend;
 extern mpu_command_t received_command;

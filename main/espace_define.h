@@ -1,5 +1,7 @@
-#ifndef __USER_DEFINE_H__
-#define __USER_DEFINE_H__
+#ifndef __ESPACE_DEFINE_H__
+#define __ESPACE_DEFINE_H__
+
+#include "esp_err.h"
 
 #define SW_VERSION "v0.0.1"
 #define USER_CONFIG_NVS_NAMESPACE "user_config"
@@ -13,16 +15,16 @@
 extern "C" {
 #endif
 
-#pragma pack(1)
+#pragma pack(push, 1)
 typedef struct
 {
-    gpio_num_t up_key_gpio_num;
-    gpio_num_t down_key_gpio_num;
+    int up_key_gpio_num;
+    int down_key_gpio_num;
 
-    gpio_num_t mpu_sda_gpio_num;
-    gpio_num_t mpu_scl_gpio_num;
+    int mpu_sda_gpio_num;
+    int mpu_scl_gpio_num;
 
-    gpio_num_t ws2812_gpio_num;
+    int ws2812_gpio_num;
 
     char username[32];
     char password[32];
@@ -38,7 +40,7 @@ typedef struct
     int msg_buf_recv_size;
     int msg_buf_send_size;
 
-    uint16_t button_period_ms;
+    int button_period_ms;
 
     int mpu_one_shot_max_sample_size;
     int mpu_buf_out_to_cnn_size;
@@ -48,14 +50,21 @@ typedef struct
 
     int esplog_max_length;
 
-    gpio_num_t periph_pwr_gpio_num;
-    gpio_num_t i2s_bck_gpio_num;
-    gpio_num_t i2s_ws_gpio_num;
-    gpio_num_t i2s_dout_gpio_num;
-    gpio_num_t ir_rx_gpio_num;
-    gpio_num_t ir_tx_gpio_num;
+    int periph_pwr_gpio_num;
+    int i2s_bck_gpio_num;
+    int i2s_ws_gpio_num;
+    int i2s_dout_gpio_num;
+    int ir_rx_gpio_num;
+    int ir_tx_gpio_num;
 
 } user_config_t;
+#pragma pack(pop)
+
+typedef struct
+{
+    esp_err_t esp_err;
+    char err_msg[128];
+} user_def_err_t;
 
 #ifdef __cplusplus
 }

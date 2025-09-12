@@ -1,5 +1,29 @@
 #include "nvs_util.h"
 
+#include "espace_define.h"
+
+#include "esp_err.h"
+#include "esp_log.h"
+#include "esp_timer.h"
+
+#include "driver/gpio.h"
+
+#include "freertos/FreeRTOS.h"
+#include "freertos/idf_additions.h"
+#include "freertos/message_buffer.h"
+
+#include "ctype.h"
+#include "stdint.h"
+#include "string.h"
+
+#include "nvs_flash.h"
+
+#include "cJSON.h"
+
+#include "service/json_helper.h"
+
+#include "task/mpu_task.h"
+
 static const char* TAG = "NVS_UTIL";
 
 esp_err_t save_to_namespace(char* user_namespace, const char* key, void* value, size_t size)
@@ -174,7 +198,7 @@ void enable_periph_pwr()
     io_conf.mode = GPIO_MODE_OUTPUT; // 设置为输入模式
     gpio_config(&io_conf);
 
-    gpio_set_level(user_config.periph_pwr_gpio_num, 0);
+    gpio_set_level(gpio_num_t(user_config.periph_pwr_gpio_num), 0);
 }
 
 MessageBufferHandle_t xMessageBufferReqSend;
@@ -184,19 +208,14 @@ void malloc_all_buffer()
 {
     uint64_t start = esp_timer_get_time();
 
-    static StaticMessageBuffer_t xStacicMessageBufferReqSend;
-    uint8_t* xStacicMessageBufferReqSendArea = (uint8_t*)malloc(user_config.msg_buf_send_size);
-    xMessageBufferReqSend = xMessageBufferCreateStatic(user_config.msg_buf_send_size, xStacicMessageBufferReqSendArea, &xStacicMessageBufferReqSend);
+    UBaseType_t capType = MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT;
+    xMessageBufferReqSend = xMessageBufferCreateWithCaps(user_config.msg_buf_send_size, capType);
     configASSERT(xMessageBufferReqSend);
 
-    static StaticMessageBuffer_t xStacicMessageBufferReqRecv;
-    uint8_t* xStacicMessageBufferReqRecvArea = (uint8_t*)malloc(user_config.msg_buf_recv_size);
-    xMessageBufferReqRecv = xMessageBufferCreateStatic(user_config.msg_buf_recv_size, xStacicMessageBufferReqRecvArea, &xStacicMessageBufferReqRecv);
+    xMessageBufferReqRecv = xMessageBufferCreateWithCaps(user_config.msg_buf_recv_size, capType);
     configASSERT(xMessageBufferReqRecv);
 
-    static StaticMessageBuffer_t xStacicMessageBufferMPUOut2CNN;
-    uint8_t* xStacicMessageBufferMPUOut2CNNArea = (uint8_t*)malloc(user_config.mpu_buf_out_to_cnn_size);
-    xMessageBufferMPUOut2CNN = xMessageBufferCreateStatic(user_config.mpu_buf_out_to_cnn_size, xStacicMessageBufferMPUOut2CNNArea, &xStacicMessageBufferMPUOut2CNN);
+    xMessageBufferMPUOut2CNN = xMessageBufferCreateWithCaps(user_config.mpu_buf_out_to_cnn_size, capType);
     configASSERT(xMessageBufferMPUOut2CNN);
 
     uint64_t end = esp_timer_get_time();

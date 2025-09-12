@@ -1,4 +1,36 @@
-#include "user_config.h"
+#include "espace_define.h"
+
+#include "esp_event.h"
+#include "esp_log.h"
+#include "esp_netif.h"
+#include "esp_wifi.h"
+
+#include "freertos/FreeRTOS.h"
+#include "freertos/idf_additions.h"
+#include "freertos/task.h"
+
+#include "nvs_flash.h"
+#include "nvs_util.h"
+
+#include "service/io_lock_service.h"
+#include "service/json_helper.h"
+#include "service/littlefs_service.h"
+#include "service/tflite_service.h"
+
+#include "task/button.h"
+#include "task/handle_req_task.h"
+#include "task/ir_task.h"
+#include "task/mpu_task.h"
+#include "task/play_mp3.h"
+#include "task/tflite_task.h"
+#include "task/wand_server_task.h"
+#include "task/ws2812_task.h"
+#include "task/ws_task.h"
+
+#include <cstdarg>
+#include <cstdint>
+#include <cstring>
+
 user_config_t user_config;
 
 static const char* TAG = "MAIN";
@@ -21,7 +53,6 @@ int my_vprintf(const char* _Format, va_list _ArgList)
 
 extern "C" void app_main(void)
 {
-
     // Initialize NVS
     ESP_LOGI(TAG, "Initialize NVS");
     esp_err_t ret = nvs_flash_init();
@@ -31,6 +62,7 @@ extern "C" void app_main(void)
     }
     ESP_ERROR_CHECK(ret);
 
+    cjson_hook_init(NULL);
     littlefs_init();
     list_littlefs_files(NULL);
     load_user_config();
@@ -60,5 +92,4 @@ extern "C" void app_main(void)
     // xTaskCreatePinnedToCore(&ir_task, "ir_task", 1024 * 3, NULL, 5, NULL, 1);
 
     esp_log_set_vprintf(my_vprintf);
-
 }

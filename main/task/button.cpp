@@ -1,4 +1,23 @@
 #include "button.h"
+#include "service/button_service.h"
+
+#include "espace_define.h"
+
+#include "esp_err.h"
+#include "esp_log.h"
+#include "esp_sleep.h"
+#include "esp_timer.h"
+
+#include "stdint.h"
+#include "string.h"
+
+#include "multi_button.h"
+
+#include "freertos/FreeRTOS.h"
+#include "freertos/event_groups.h"
+#include "freertos/task.h"
+
+#include "driver/gpio.h"
 
 struct Button button0;
 struct Button button1;
@@ -14,7 +33,7 @@ static void periodic_timer_callback(void* arg)
 
 void into_sleep(void* btn)
 {
-    gpio_set_level(user_config.periph_pwr_gpio_num, 1);
+    gpio_set_level(gpio_num_t(user_config.periph_pwr_gpio_num), 1);
     ESP_LOGW(TAG, "Into sleep");
     vTaskDelay(pdMS_TO_TICKS(100));
     esp_deep_sleep_start();

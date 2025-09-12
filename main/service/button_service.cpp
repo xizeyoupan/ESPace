@@ -1,5 +1,22 @@
 #include "button_service.h"
 
+#include "espace_define.h"
+
+#include "driver/gpio.h"
+
+#include "esp_err.h"
+#include "esp_log.h"
+
+#include "stdint.h"
+#include "string.h"
+
+#include "freertos/FreeRTOS.h"
+#include "freertos/event_groups.h"
+
+#include "task/mpu_task.h"
+
+#include "multi_button.h"
+
 extern struct Button button0;
 extern struct Button button1;
 
@@ -14,10 +31,10 @@ uint8_t read_button_GPIO(uint8_t button_id)
 {
     switch (button_id) {
     case 0:
-        return gpio_get_level(user_config.up_key_gpio_num);
+        return gpio_get_level(gpio_num_t(user_config.up_key_gpio_num));
         break;
     case 1:
-        return gpio_get_level(user_config.down_key_gpio_num);
+        return gpio_get_level(gpio_num_t(user_config.down_key_gpio_num));
         break;
     default:
         return 0;

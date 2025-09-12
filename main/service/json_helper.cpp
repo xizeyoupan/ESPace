@@ -1,6 +1,31 @@
 #include "json_helper.h"
 
-static const char* TAG = "DEVICE_SERVICE";
+#include "espace_define.h"
+
+#include "esp_clk_tree.h"
+#include "esp_err.h"
+#include "esp_heap_caps.h"
+#include "esp_log.h"
+
+#include "stdint.h"
+#include "string.h"
+
+#include "freertos/FreeRTOS.h"
+
+#include "hal/efuse_hal.h"
+#include "hal/efuse_ll.h"
+
+#include "driver/dac_cosine.h"
+
+#include "peripherals/cosine_wave.h"
+#include "peripherals/func_wave.h"
+#include "peripherals/ledc_pwm.h"
+
+#include "service/mpu_service.h"
+
+#include "cJSON.h"
+
+static const char* TAG = "JSON_HELPER";
 extern user_config_t user_config;
 
 cJSON* get_device_info(void)
@@ -295,4 +320,44 @@ cJSON* get_dac_cosine_config_json(int index)
     cJSON_AddNumberToObject(dac_cosine_config_json, "phase", dac_cosine_config.phase);
     cJSON_AddNumberToObject(dac_cosine_config_json, "offset", dac_cosine_config.offset);
     return dac_cosine_config_json;
+}
+
+extern dac_cont_wav_t dac_cont_wav;
+void load_dac_cont_data_from_json(const cJSON* data)
+{
+    cJSON* wav_data = cJSON_GetObjectItem(data, "wav_data");
+    dac_cont_wav.length = cJSON_GetArraySize(wav_data);
+
+    if (dac_cont_wav.data_wav != NULL) {
+        free(dac_cont_wav.data_wav);
+    }
+
+    dac_cont_wav.data_wav = (uint8_t*)heap_caps_malloc(dac_cont_wav.length, MALLOC_CAP_INTERNAL);
+    if (dac_cont_wav.data_wav == NULL) {
+        ESP_LOGE(TAG, "Failed to allocate memory %dB for dac_cont_wav.data_wav", dac_cont_wav.length);
+        return;
+    }
+    for (size_t i = 0; i < dac_cont_wav.length; i++) {
+        cJSON* item = cJSON_GetArrayItem(wav_data, i);
+        dac_cont_wav.data_wav[i] = item->valuedouble;
+    }
+
+    ESP_LOGI(TAG, "Successfully loaded dac_cont_wavs");
+}
+
+void* malloc_fn(size_t size)
+{
+    return heap_caps_malloc(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+}
+
+void cjson_hook_init(user_def_err_t* user_def_err)
+{
+    cJSON_Hooks memoryHook;
+
+    memoryHook.malloc_fn = malloc_fn;
+    memoryHook.free_fn = heap_caps_free;
+    cJSON_InitHooks(&memoryHook);
+    if (user_def_err) {
+        user_def_err->esp_err = ESP_OK;
+    }
 }

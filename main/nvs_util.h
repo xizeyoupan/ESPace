@@ -1,7 +1,8 @@
 #ifndef __NVS_UTIL_H__
 #define __NVS_UTIL_H__
 
-#include "user_config.h"
+#include "esp_err.h"
+#include "stdint.h"
 
 #ifdef __cplusplus
 extern "C" {

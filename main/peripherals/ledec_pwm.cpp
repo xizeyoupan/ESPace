@@ -1,5 +1,17 @@
 #include "ledc_pwm.h"
 
+#include "driver/ledc.h"
+
+#include "espace_define.h"
+
+#include "esp_err.h"
+#include "esp_log.h"
+
+#include "stdint.h"
+#include "string.h"
+
+#include "service/io_lock_service.h"
+
 static const char* TAG = "LEDC PWM";
 extern user_config_t user_config;
 

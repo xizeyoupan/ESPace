@@ -1,5 +1,25 @@
 #include "mpu_task.h"
 
+#include "espace_define.h"
+
+#include "esp_err.h"
+#include "esp_log.h"
+#include "esp_timer.h"
+
+#include "stdint.h"
+#include "string.h"
+
+#include "freertos/FreeRTOS.h"
+#include "freertos/event_groups.h"
+#include "freertos/message_buffer.h"
+#include "freertos/semphr.h"
+#include "freertos/task.h"
+
+#include "service/mpu_service.h"
+#include "service/ws2812_service.h"
+
+#include "nvs_util.h"
+
 static const char* TAG = "MPU_TASK";
 extern user_config_t user_config;
 

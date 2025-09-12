@@ -1,7 +1,9 @@
 #ifndef __COSINE_WAVE_H__
 #define __COSINE_WAVE_H__
 
-#include "user_config.h"
+#include "driver/dac_cosine.h"
+#include "esp_err.h"
+#include "stdint.h"
 
 #ifdef __cplusplus
 extern "C" {

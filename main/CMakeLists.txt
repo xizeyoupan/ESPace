@@ -23,6 +23,7 @@ idf_component_register(
     "./peripherals/ir_nec_encoder.c"
     "./peripherals/ledec_pwm.cpp"
     "./peripherals/cosine_wave.cpp"
+    "./peripherals/func_wave.cpp"
     INCLUDE_DIRS
     "."
     "./service"

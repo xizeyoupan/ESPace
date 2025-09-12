@@ -1,5 +1,18 @@
 #include "ws_task.h"
 
+#include "espace_define.h"
+
+#include "esp_err.h"
+#include "esp_http_server.h"
+#include "esp_log.h"
+
+#include "stdint.h"
+#include "string.h"
+
+#include "freertos/FreeRTOS.h"
+#include "freertos/message_buffer.h"
+#include "freertos/task.h"
+
 static const char* TAG = "WS_TASK";
 
 extern httpd_handle_t server;

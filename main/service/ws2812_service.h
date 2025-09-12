@@ -1,7 +1,11 @@
 #ifndef __WS2812_SERVICE_H__
 #define __WS2812_SERVICE_H__
 
-#include "user_config.h"
+#include "stdint.h"
+
+#define WS2812_STATIC_BIT BIT0
+#define WS2812_BLINK_BIT BIT1
+#define WS2812_BREATHE_BIT BIT2
 
 #ifdef __cplusplus
 extern "C" {

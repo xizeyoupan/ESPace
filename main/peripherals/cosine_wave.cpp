@@ -1,5 +1,17 @@
 #include "cosine_wave.h"
 
+#include "espace_define.h"
+
+#include "driver/dac_cosine.h"
+
+#include "esp_err.h"
+#include "esp_log.h"
+
+#include "stdint.h"
+#include "string.h"
+
+#include "service/io_lock_service.h"
+
 static const char* TAG = "COSINE WAVE";
 extern user_config_t user_config;
 
