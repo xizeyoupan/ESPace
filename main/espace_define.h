@@ -118,10 +118,11 @@ typedef struct {
 
 REFLECT_STRUCT(user_config_t, USER_CONFIG_FIELDS)
 
+#define USER_DEF_ERR_MSG_LEN 128
 typedef struct
 {
     esp_err_t esp_err;
-    char err_msg[128];
+    char err_msg[USER_DEF_ERR_MSG_LEN];
 } user_def_err_t;
 
 #ifdef __cplusplus

@@ -25,6 +25,7 @@ void malloc_all_buffer();
 
 cJSON* toCjsonObj(const void* obj, const StructInfo* info);
 void fromCjsonObj(void* obj, const StructInfo* info, const cJSON* json);
+int my_vprintf(const char* _Format, va_list _ArgList);
 
 #ifdef __cplusplus
 }

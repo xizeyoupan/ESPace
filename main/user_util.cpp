@@ -312,3 +312,19 @@ void fromCjsonObj(void* obj, const StructInfo* info, const cJSON* json)
         }
     }
 }
+
+int my_vprintf(const char* _Format, va_list _ArgList)
+{
+    va_list args_copy;
+    va_copy(args_copy, _ArgList);
+    int len = vsnprintf(NULL, 0, _Format, args_copy);
+    va_end(args_copy);
+
+    if (user_config.esplog_max_length == 0) {
+        return 0;
+    } else if (len > user_config.esplog_max_length) {
+        return printf("log str len = %d, ignored.\n", len);
+    } else {
+        return vprintf(_Format, _ArgList);
+    }
+}
