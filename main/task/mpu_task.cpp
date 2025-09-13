@@ -18,7 +18,7 @@
 #include "service/mpu_service.h"
 #include "service/ws2812_service.h"
 
-#include "nvs_util.h"
+#include "user_util.h"
 
 static const char* TAG = "MPU_TASK";
 extern user_config_t user_config;

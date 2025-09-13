@@ -83,7 +83,7 @@
         "wand_server_task.h": "c",
         "esp_system.h": "c",
         "cjson.h": "c",
-        "nvs_util.h": "c",
+        "user_util.h": "c",
         "http_util.h": "c",
         "esp_http_server.h": "c",
         "config.h": "c",
@@ -177,7 +177,8 @@
         "rmt_encoder.h": "c",
         "espace_define.h": "c",
         "audio_element.h": "c",
-        "audio_pipeline.h": "c"
+        "audio_pipeline.h": "c",
+        "*.def": "cpp"
     },
     "idf.port": "/dev/ttyUSB0",
     "idf.espIdfPath": "/home/mio/esp/v5.2.3/esp-idf",

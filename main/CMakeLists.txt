@@ -1,6 +1,6 @@
 idf_component_register(
     SRCS
-    "nvs_util.cpp"
+    "user_util.cpp"
     "main.cpp"
     "./task/play_mp3.c"
     "./task/button.cpp"

@@ -23,6 +23,8 @@
 
 #include "service/mpu_service.h"
 
+#include "user_util.h"
+
 #include "cJSON.h"
 
 static const char* TAG = "JSON_HELPER";
@@ -131,52 +133,7 @@ get_state_info_end:
 
 cJSON* get_user_config_json(void)
 {
-    cJSON* data = cJSON_CreateObject();
-    if (data == NULL) {
-        goto get_user_config_json_end;
-    }
-
-    cJSON_AddNumberToObject(data, "up_key_gpio_num", user_config.up_key_gpio_num);
-    cJSON_AddNumberToObject(data, "down_key_gpio_num", user_config.down_key_gpio_num);
-    cJSON_AddNumberToObject(data, "mpu_sda_gpio_num", user_config.mpu_sda_gpio_num);
-    cJSON_AddNumberToObject(data, "mpu_scl_gpio_num", user_config.mpu_scl_gpio_num);
-    cJSON_AddNumberToObject(data, "ws2812_gpio_num", user_config.ws2812_gpio_num);
-
-    cJSON_AddStringToObject(data, "username", user_config.username);
-    cJSON_AddStringToObject(data, "password", user_config.password);
-    cJSON_AddStringToObject(data, "mdns_host_name", user_config.mdns_host_name);
-    cJSON_AddStringToObject(data, "wifi_ap_ssid", user_config.wifi_ap_ssid);
-    cJSON_AddStringToObject(data, "wifi_ap_pass", user_config.wifi_ap_pass);
-    cJSON_AddStringToObject(data, "wifi_ssid", user_config.wifi_ssid);
-    cJSON_AddStringToObject(data, "wifi_pass", user_config.wifi_pass);
-
-    cJSON_AddNumberToObject(data, "wifi_scan_list_size", user_config.wifi_scan_list_size);
-    cJSON_AddNumberToObject(data, "wifi_connect_max_retry", user_config.wifi_connect_max_retry);
-
-    cJSON_AddNumberToObject(data, "ws_recv_buf_size", user_config.ws_recv_buf_size);
-    cJSON_AddNumberToObject(data, "ws_send_buf_size", user_config.ws_send_buf_size);
-
-    cJSON_AddNumberToObject(data, "msg_buf_recv_size", user_config.msg_buf_recv_size);
-    cJSON_AddNumberToObject(data, "msg_buf_send_size", user_config.msg_buf_send_size);
-
-    cJSON_AddNumberToObject(data, "button_period_ms", user_config.button_period_ms);
-
-    cJSON_AddNumberToObject(data, "mpu_one_shot_max_sample_size", user_config.mpu_one_shot_max_sample_size);
-    cJSON_AddNumberToObject(data, "mpu_buf_out_to_cnn_size", user_config.mpu_buf_out_to_cnn_size);
-
-    cJSON_AddNumberToObject(data, "tflite_arena_size", user_config.tflite_arena_size);
-    cJSON_AddNumberToObject(data, "tflite_model_size", user_config.tflite_model_size);
-
-    cJSON_AddNumberToObject(data, "esplog_max_length", user_config.esplog_max_length);
-
-    cJSON_AddNumberToObject(data, "periph_pwr_gpio_num", user_config.periph_pwr_gpio_num);
-    cJSON_AddNumberToObject(data, "i2s_bck_gpio_num", user_config.i2s_bck_gpio_num);
-    cJSON_AddNumberToObject(data, "i2s_ws_gpio_num", user_config.i2s_ws_gpio_num);
-    cJSON_AddNumberToObject(data, "i2s_dout_gpio_num", user_config.i2s_dout_gpio_num);
-    cJSON_AddNumberToObject(data, "ir_rx_gpio_num", user_config.ir_rx_gpio_num);
-    cJSON_AddNumberToObject(data, "ir_tx_gpio_num", user_config.ir_tx_gpio_num);
-
-get_user_config_json_end:
+    cJSON* data = toCjsonObj(&user_config, &user_config_t_info);
     return data;
 }
 
@@ -187,77 +144,7 @@ void assign_user_config_from_json(const cJSON* data)
         return;
     }
 
-    const cJSON* up_key_gpio_num = cJSON_GetObjectItem(data, "up_key_gpio_num");
-    user_config.up_key_gpio_num = (gpio_num_t)up_key_gpio_num->valuedouble;
-    const cJSON* down_key_gpio_num = cJSON_GetObjectItem(data, "down_key_gpio_num");
-    user_config.down_key_gpio_num = (gpio_num_t)down_key_gpio_num->valuedouble;
-    const cJSON* mpu_sda_gpio_num = cJSON_GetObjectItem(data, "mpu_sda_gpio_num");
-    user_config.mpu_sda_gpio_num = (gpio_num_t)mpu_sda_gpio_num->valuedouble;
-    const cJSON* mpu_scl_gpio_num = cJSON_GetObjectItem(data, "mpu_scl_gpio_num");
-    user_config.mpu_scl_gpio_num = (gpio_num_t)mpu_scl_gpio_num->valuedouble;
-    const cJSON* ws2812_gpio_num = cJSON_GetObjectItem(data, "ws2812_gpio_num");
-    user_config.ws2812_gpio_num = (gpio_num_t)ws2812_gpio_num->valuedouble;
-
-    const cJSON* username = cJSON_GetObjectItem(data, "username");
-    strcpy(user_config.username, username->valuestring);
-    const cJSON* password = cJSON_GetObjectItem(data, "password");
-    strcpy(user_config.password, password->valuestring);
-    const cJSON* mdns_host_name = cJSON_GetObjectItem(data, "mdns_host_name");
-    strcpy(user_config.mdns_host_name, mdns_host_name->valuestring);
-    const cJSON* wifi_ap_ssid = cJSON_GetObjectItem(data, "wifi_ap_ssid");
-    strcpy(user_config.wifi_ap_ssid, wifi_ap_ssid->valuestring);
-    const cJSON* wifi_ap_pass = cJSON_GetObjectItem(data, "wifi_ap_pass");
-    strcpy(user_config.wifi_ap_pass, wifi_ap_pass->valuestring);
-    const cJSON* wifi_ssid = cJSON_GetObjectItem(data, "wifi_ssid");
-    strcpy(user_config.wifi_ssid, wifi_ssid->valuestring);
-    const cJSON* wifi_pass = cJSON_GetObjectItem(data, "wifi_pass");
-    strcpy(user_config.wifi_pass, wifi_pass->valuestring);
-    const cJSON* wifi_scan_list_size = cJSON_GetObjectItem(data, "wifi_scan_list_size");
-    user_config.wifi_scan_list_size = wifi_scan_list_size->valuedouble;
-    const cJSON* wifi_connect_max_retry = cJSON_GetObjectItem(data, "wifi_connect_max_retry");
-    user_config.wifi_connect_max_retry = wifi_connect_max_retry->valuedouble;
-    const cJSON* ws_recv_buf_size = cJSON_GetObjectItem(data, "ws_recv_buf_size");
-    user_config.ws_recv_buf_size = ws_recv_buf_size->valuedouble;
-    const cJSON* ws_send_buf_size = cJSON_GetObjectItem(data, "ws_send_buf_size");
-    user_config.ws_send_buf_size = ws_send_buf_size->valuedouble;
-    const cJSON* msg_buf_recv_size = cJSON_GetObjectItem(data, "msg_buf_recv_size");
-    user_config.msg_buf_recv_size = msg_buf_recv_size->valuedouble;
-    const cJSON* msg_buf_send_size = cJSON_GetObjectItem(data, "msg_buf_send_size");
-    user_config.msg_buf_send_size = msg_buf_send_size->valuedouble;
-
-    const cJSON* button_period_ms = cJSON_GetObjectItem(data, "button_period_ms");
-    user_config.button_period_ms = button_period_ms->valuedouble;
-
-    const cJSON* mpu_one_shot_max_sample_size = cJSON_GetObjectItem(data, "mpu_one_shot_max_sample_size");
-    user_config.mpu_one_shot_max_sample_size = mpu_one_shot_max_sample_size->valuedouble;
-    const cJSON* mpu_buf_out_to_cnn_size = cJSON_GetObjectItem(data, "mpu_buf_out_to_cnn_size");
-    user_config.mpu_buf_out_to_cnn_size = mpu_buf_out_to_cnn_size->valuedouble;
-
-    const cJSON* tflite_arena_size = cJSON_GetObjectItem(data, "tflite_arena_size");
-    user_config.tflite_arena_size = tflite_arena_size->valuedouble;
-    const cJSON* tflite_model_size = cJSON_GetObjectItem(data, "tflite_model_size");
-    user_config.tflite_model_size = tflite_model_size->valuedouble;
-
-    const cJSON* esplog_max_length = cJSON_GetObjectItem(data, "esplog_max_length");
-    user_config.esplog_max_length = esplog_max_length->valuedouble;
-
-    const cJSON* periph_pwr_gpio_num = cJSON_GetObjectItem(data, "periph_pwr_gpio_num");
-    user_config.periph_pwr_gpio_num = (gpio_num_t)periph_pwr_gpio_num->valuedouble;
-
-    const cJSON* i2s_bck_gpio_num = cJSON_GetObjectItem(data, "i2s_bck_gpio_num");
-    user_config.i2s_bck_gpio_num = (gpio_num_t)i2s_bck_gpio_num->valuedouble;
-
-    const cJSON* i2s_ws_gpio_num = cJSON_GetObjectItem(data, "i2s_ws_gpio_num");
-    user_config.i2s_ws_gpio_num = (gpio_num_t)i2s_ws_gpio_num->valuedouble;
-
-    const cJSON* i2s_dout_gpio_num = cJSON_GetObjectItem(data, "i2s_dout_gpio_num");
-    user_config.i2s_dout_gpio_num = (gpio_num_t)i2s_dout_gpio_num->valuedouble;
-
-    const cJSON* ir_rx_gpio_num = cJSON_GetObjectItem(data, "ir_rx_gpio_num");
-    user_config.ir_rx_gpio_num = (gpio_num_t)ir_rx_gpio_num->valuedouble;
-
-    const cJSON* ir_tx_gpio_num = cJSON_GetObjectItem(data, "ir_tx_gpio_num");
-    user_config.ir_tx_gpio_num = (gpio_num_t)ir_tx_gpio_num->valuedouble;
+    fromCjsonObj(&user_config, &user_config_t_info, data);
 }
 
 cJSON* get_ledc_timer_config_json(int index)

@@ -1,16 +1,13 @@
 #include "espace_define.h"
 
-#include "esp_event.h"
 #include "esp_log.h"
-#include "esp_netif.h"
-#include "esp_wifi.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/idf_additions.h"
 #include "freertos/task.h"
 
 #include "nvs_flash.h"
-#include "nvs_util.h"
+#include "user_util.h"
 
 #include "service/io_lock_service.h"
 #include "service/json_helper.h"
@@ -30,6 +27,8 @@
 #include <cstdarg>
 #include <cstdint>
 #include <cstring>
+
+#include "cJSON.h"
 
 user_config_t user_config;
 

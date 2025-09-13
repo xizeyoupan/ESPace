@@ -1,4 +1,4 @@
-#include "nvs_util.h"
+#include "user_util.h"
 
 #include "espace_define.h"
 
@@ -71,13 +71,13 @@ void reset_user_config()
 
     memset(&user_config, 0, sizeof(user_config_t));
 
-    user_config.up_key_gpio_num = (gpio_num_t)4;
-    user_config.down_key_gpio_num = (gpio_num_t)0;
+    user_config.up_key_gpio_num = 4;
+    user_config.down_key_gpio_num = 0;
 
-    user_config.mpu_sda_gpio_num = (gpio_num_t)22;
-    user_config.mpu_scl_gpio_num = (gpio_num_t)21;
+    user_config.mpu_sda_gpio_num = 22;
+    user_config.mpu_scl_gpio_num = 21;
 
-    user_config.ws2812_gpio_num = (gpio_num_t)23;
+    user_config.ws2812_gpio_num = 23;
 
     user_config.wifi_scan_list_size = 50;
     user_config.wifi_connect_max_retry = 10;
@@ -103,12 +103,12 @@ void reset_user_config()
 
     user_config.esplog_max_length = 128;
 
-    user_config.periph_pwr_gpio_num = (gpio_num_t)33;
-    user_config.i2s_bck_gpio_num = (gpio_num_t)14;
-    user_config.i2s_ws_gpio_num = (gpio_num_t)13;
-    user_config.i2s_dout_gpio_num = (gpio_num_t)27;
-    user_config.ir_rx_gpio_num = (gpio_num_t)19;
-    user_config.ir_tx_gpio_num = (gpio_num_t)18;
+    user_config.periph_pwr_gpio_num = 33;
+    user_config.i2s_bck_gpio_num = 14;
+    user_config.i2s_ws_gpio_num = 13;
+    user_config.i2s_dout_gpio_num = 27;
+    user_config.ir_rx_gpio_num = 19;
+    user_config.ir_tx_gpio_num = 18;
 }
 
 void load_user_config()
@@ -220,4 +220,95 @@ void malloc_all_buffer()
 
     uint64_t end = esp_timer_get_time();
     ESP_LOGI(TAG, "Took %llu milliseconds to malloc all buffer", (end - start) / 1000);
+}
+
+/*
+#define PERSON_FIELDS(X, XA, S)             \
+    X (S, int,   age,    INT,  0, 0)        \
+    XA(S, char,  name,   FIXED_STRING, 32, 1) \
+    X (S, float, height, FLOAT, 0, 0)
+
+REFLECT_STRUCT(Person, PERSON_FIELDS)
+
+Person p;
+cJSON* obj = toCjsonObj(&p, &Person_info);
+*/
+cJSON* toCjsonObj(const void* obj, const StructInfo* info)
+{
+    cJSON* root = cJSON_CreateObject();
+    for (size_t i = 0; i < info->field_count; i++) {
+        const FieldInfo* f = &info->fields[i];
+        const char* base = (const char*)obj;
+        const void* ptr = base + f->offset;
+
+        switch (f->kind) {
+        case INT:
+            cJSON_AddNumberToObject(root, f->field_name, *(int*)ptr);
+            break;
+        case FLOAT:
+            cJSON_AddNumberToObject(root, f->field_name, *(float*)ptr);
+            break;
+        case DOUBLE:
+            cJSON_AddNumberToObject(root, f->field_name, *(double*)ptr);
+            break;
+        case STRING:
+            cJSON_AddStringToObject(root, f->field_name, *(char**)ptr);
+            break;
+        case FIXED_STRING:
+            cJSON_AddStringToObject(root, f->field_name, (const char*)ptr);
+            break;
+        }
+    }
+    return root;
+}
+
+/*
+#define PERSON_FIELDS(X, XA, S)             \
+    X (S, int,   age,    INT,  0, 0)        \
+    XA(S, char,  name,   FIXED_STRING, 32, 1) \
+    X (S, float, height, FLOAT, 0, 0)
+REFLECT_STRUCT(Person, PERSON_FIELDS)
+
+Person p;
+const char* json_text = "{\"age\":30,\"name\":\"Bob\",\"height\":1.75}";
+cJSON* json = cJSON_Parse(json_text);
+Person p;
+memset(&p, 0, sizeof(p));
+fromCjsonObj(&p, &Person_info, json);
+*/
+void fromCjsonObj(void* obj, const StructInfo* info, const cJSON* json)
+{
+    for (size_t i = 0; i < info->field_count; i++) {
+        const FieldInfo* f = &info->fields[i];
+        const char* base = (const char*)obj;
+        void* ptr = (void*)(base + f->offset);
+
+        const cJSON* item = cJSON_GetObjectItemCaseSensitive(json, f->field_name);
+        if (!item)
+            continue;
+
+        switch (f->kind) {
+        case INT:
+            if (cJSON_IsNumber(item))
+                *(int*)ptr = item->valueint;
+            break;
+        case FLOAT:
+            if (cJSON_IsNumber(item))
+                *(float*)ptr = (float)item->valuedouble;
+            break;
+        case DOUBLE:
+            if (cJSON_IsNumber(item))
+                *(double*)ptr = item->valuedouble;
+            break;
+        case STRING:
+            if (cJSON_IsString(item) && item->valuestring)
+                *(char**)ptr = strdup(item->valuestring);
+            break;
+        case FIXED_STRING:
+            if (cJSON_IsString(item) && item->valuestring)
+                strncpy((char*)ptr, item->valuestring, f->array_size - 1);
+            ((char*)ptr)[f->array_size - 1] = '\0';
+            break;
+        }
+    }
 }
