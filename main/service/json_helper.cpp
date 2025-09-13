@@ -30,6 +30,11 @@
 static const char* TAG = "JSON_HELPER";
 extern user_config_t user_config;
 
+void* malloc_fn(size_t size)
+{
+    return heap_caps_malloc(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+}
+
 cJSON* get_device_info(void)
 {
     cJSON* data = cJSON_CreateObject();
@@ -219,22 +224,18 @@ void load_dac_cont_data_from_json(const cJSON* data)
         free(dac_cont_wav.data_wav);
     }
 
-    dac_cont_wav.data_wav = (uint8_t*)heap_caps_malloc(dac_cont_wav.length, MALLOC_CAP_INTERNAL);
+    dac_cont_wav.data_wav = (uint8_t*)malloc_fn(dac_cont_wav.length);
     if (dac_cont_wav.data_wav == NULL) {
         ESP_LOGE(TAG, "Failed to allocate memory %dB for dac_cont_wav.data_wav", dac_cont_wav.length);
         return;
     }
+
     for (size_t i = 0; i < dac_cont_wav.length; i++) {
         cJSON* item = cJSON_GetArrayItem(wav_data, i);
         dac_cont_wav.data_wav[i] = item->valuedouble;
     }
 
     ESP_LOGI(TAG, "Successfully loaded dac_cont_wavs");
-}
-
-void* malloc_fn(size_t size)
-{
-    return heap_caps_malloc(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
 }
 
 void cjson_hook_init(user_def_err_t* user_def_err)

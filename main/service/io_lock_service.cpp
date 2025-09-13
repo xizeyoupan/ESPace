@@ -120,3 +120,34 @@ void io_mutex_get_status(int index, char* holder, int* channel)
         xSemaphoreGive(io_mutex_array[index].meta_lock);
     }
 }
+
+void try_to_lock_io(int gpio_num, const char* holder, int channel, user_def_err_t* user_err)
+{
+    char io_holder[HOLDER_STRING_SIZE] = { 0 };
+    int io_holder_channel;
+
+    io_mutex_get_status(gpio_num, io_holder, &io_holder_channel);
+
+    if (strlen(io_holder) == 0) {
+        if (io_mutex_lock(gpio_num, holder, channel, portMAX_DELAY) != pdTRUE) {
+            if (user_err) {
+                snprintf(user_err->err_msg, USER_DEF_ERR_MSG_LEN,
+                    "Failed to lock GPIO %d for %s", gpio_num, holder);
+                user_err->esp_err = ESP_ERR_INVALID_STATE;
+                ESP_LOGE(TAG, "%s", user_err->err_msg);
+            }
+        } else {
+            if (user_err) {
+                user_err->esp_err = ESP_OK;
+            }
+        }
+    } else if (strcmp(io_holder, holder) != 0 || io_holder_channel != channel) {
+        if (user_err) {
+            snprintf(user_err->err_msg, USER_DEF_ERR_MSG_LEN,
+                "GPIO %d is already locked by %s on channel %d",
+                gpio_num, io_holder, io_holder_channel);
+            user_err->esp_err = ESP_ERR_INVALID_STATE;
+            ESP_LOGE(TAG, "%s", user_err->err_msg);
+        }
+    }
+}

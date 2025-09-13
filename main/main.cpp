@@ -68,7 +68,7 @@ extern "C" void app_main(void)
 
     xTaskCreatePinnedToCore(&scan_button_task, "button_task", 1024 * 3, NULL, 5, NULL, 1);
 
-    xTaskCreatePinnedToCore(&play_mp3_task, "MP3", 1024 * 10, NULL, 5, NULL, 1);
+    // xTaskCreatePinnedToCore(&play_mp3_task, "MP3", 1024 * 10, NULL, 5, NULL, 1);
 
     // xTaskCreatePinnedToCore(&ir_task, "ir_task", 1024 * 3, NULL, 5, NULL, 1);
 

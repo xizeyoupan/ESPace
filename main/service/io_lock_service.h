@@ -4,6 +4,8 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 
+#include "espace_define.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -28,10 +30,11 @@ extern "C" {
 #define USB_BRIDGE_HOLDER "USB_BRIDGE"
 #define LEDC_PWM_HOLDER "LEDC_PWM"
 #define DAC_COSINE_HOLDER "DAC_COSINE"
+#define FUNC_GEN_HOLDER "FUNC_GEN"
 
 typedef struct {
     SemaphoreHandle_t mutex; // 实际的资源锁
-    SemaphoreHandle_t meta_lock; // 保护 holder 的轻量互斥锁
+    SemaphoreHandle_t meta_lock; // 保护数据的互斥锁
     char holder[HOLDER_STRING_SIZE];
     int channel; // 资源锁的通道
 } io_mutex_t;
@@ -40,6 +43,7 @@ void io_mutex_init(void);
 BaseType_t io_mutex_lock(int index, const char* holder, int channel, TickType_t timeout_ticks);
 BaseType_t io_mutex_unlock(int index, const char* holder, int channel);
 void io_mutex_get_status(int index, char* holder, int* channel);
+void try_to_lock_io(int gpio_num, const char* holder, int channel, user_def_err_t* user_err);
 
 #ifdef __cplusplus
 }

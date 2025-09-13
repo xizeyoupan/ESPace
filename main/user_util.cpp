@@ -101,7 +101,7 @@ void reset_user_config()
     user_config.tflite_arena_size = 1024 * 100;
     user_config.tflite_model_size = 1200 * 6 * 4;
 
-    user_config.esplog_max_length = 128;
+    user_config.esplog_max_length = 512;
 
     user_config.periph_pwr_gpio_num = 33;
     user_config.i2s_bck_gpio_num = 14;
