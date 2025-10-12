@@ -14,7 +14,6 @@ idf_component_register(
     "./service/wifi_service.cpp"
     "./service/json_helper.cpp"
     "./service/io_lock_service.cpp"
-    "./service/button_service.cpp"
     "./service/http_service.cpp"
     "./service/littlefs_service.cpp"
     "./service/ws2812_service.cpp"

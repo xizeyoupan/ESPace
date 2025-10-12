@@ -20,7 +20,7 @@
 
 static const char* TAG = "TFLITE_TASK";
 extern MessageBufferHandle_t xMessageBufferMPUOut2CNN, xMessageBufferReqSend;
-extern mpu_command_t received_command;
+extern mpu_state_t mpu_state;
 
 float output_buf[16];
 
@@ -30,21 +30,21 @@ void tflite_task(void* pvParameters)
     ESP_LOGI(TAG, "Task is running on core %d.", core_id);
 
     while (1) {
-        if (!received_command.sample_size) {
+        if (!mpu_state.sample_size) {
             vTaskDelay(pdTICKS_TO_MS(10));
             continue;
         }
 
-        size_t byte_size = received_command.sample_size * 24;
+        size_t byte_size = mpu_state.sample_size * 24;
         float* buffer = (float*)malloc(byte_size);
         int output_size;
         size_t msg_size = xMessageBufferReceive(xMessageBufferMPUOut2CNN, buffer, byte_size, portMAX_DELAY);
         ESP_LOGI(TAG, "Received %d bytes from message buffer. Expected byte_size: %d", msg_size, byte_size);
 
-        tflite_invoke(buffer, received_command.sample_size * 6, output_buf, &output_size);
+        tflite_invoke(buffer, mpu_state.sample_size * 6, output_buf, &output_size);
         free(buffer);
 
-        if (received_command.send_to_ws) {
+        if (mpu_state.send_to_ws) {
             cJSON* json2ws = cJSON_CreateObject();
             cJSON* payload = cJSON_CreateObject();
             cJSON* output = cJSON_CreateFloatArray(output_buf, output_size);

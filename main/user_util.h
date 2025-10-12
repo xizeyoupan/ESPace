@@ -24,6 +24,10 @@ void enable_periph_pwr();
 void disable_periph_pwr();
 void malloc_all_buffer();
 
+// 设备状态管理函数
+device_state_t get_device_state(void);
+void set_device_state(device_state_t new_state);
+
 cJSON* toCjsonObj(const void* obj, const StructInfo* info);
 void fromCjsonObj(void* obj, const StructInfo* info, const cJSON* json);
 int my_vprintf(const char* _Format, va_list _ArgList);

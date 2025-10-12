@@ -118,6 +118,17 @@ typedef struct {
 
 REFLECT_STRUCT(user_config_t, USER_CONFIG_FIELDS)
 
+// 全局设备状态枚举
+typedef enum {
+    DEVICE_STATE_IDLE = 0, // 空闲状态
+    DEVICE_STATE_DATASET_SAMPLING, // 采样状态
+    DEVICE_STATE_MODEL_SWITCH, // 模型切换状态
+    DEVICE_STATE_CONFIG, // 配置状态
+    DEVICE_STATE_CALIBRATION, // 校准状态
+    DEVICE_STATE_SLEEP, // 睡眠状态
+    DEVICE_STATE_MAX
+} device_state_t;
+
 #define USER_DEF_ERR_MSG_LEN 128
 typedef struct
 {

@@ -285,6 +285,17 @@ void get_angle_and_m6(double* _roll, double* _pitch, double* _ax, double* _ay, d
     *_gz = gz;
 }
 
+void change_mpu_state(mpu_state_t* mpu_state, mpu_action_type_enum action, model_type_enum model_type, uint32_t sample_size, uint32_t sample_tick, uint8_t need_predict, uint8_t send_to_ws)
+{
+    memset(mpu_state, 0, sizeof(mpu_state_t));
+    mpu_state->action = action;
+    mpu_state->model_type = model_type;
+    mpu_state->sample_size = sample_size;
+    mpu_state->sample_tick = sample_tick;
+    mpu_state->need_predict = need_predict;
+    mpu_state->send_to_ws = send_to_ws;
+}
+
 void mpu_mutex_init()
 {
     mpu_mutex = xSemaphoreCreateMutex();

@@ -22,6 +22,7 @@
 #include "service/mpu_service.h"
 #include "service/tflite_service.h"
 #include "service/wifi_service.h"
+#include "service/ws2812_service.h"
 
 #include "peripherals/cosine_wave.h"
 #include "peripherals/func_wave.h"
@@ -35,7 +36,7 @@ static const char* TAG = "HANDLE_REQ_TASK";
 
 extern MessageBufferHandle_t xMessageBufferReqSend;
 extern user_config_t user_config;
-extern mpu_command_t received_command;
+extern mpu_state_t mpu_state;
 extern EventGroupHandle_t x_mpu_event_group;
 extern MessageBufferHandle_t xMessageBufferReqRecv;
 extern uint8_t* tflite_model_buf;
@@ -141,22 +142,16 @@ void handle_req_task(void* pvParameters)
             cJSON_AddItemToObject(resp_payload, "data", imu_data);
         } else if (strcmp(type->valuestring, "reset_imu") == 0) {
             reset_imu();
-        } else if (strcmp(type->valuestring, "get_mpu_data_row") == 0) {
+        } else if (strcmp(type->valuestring, "get_mpu_data_seq_start") == 0) {
             const cJSON* sample_size = cJSON_GetObjectItem(payload, "sample_size");
             const cJSON* sample_tick = cJSON_GetObjectItem(payload, "sample_tick");
             const cJSON* model_type = cJSON_GetObjectItem(payload, "type");
-
-            memset(&received_command, 0, sizeof(received_command));
-            received_command.type = MPU_COMMAND_TYPE_GET_ROW;
-            received_command.model_type = (model_type_enum)model_type->valuedouble;
-            received_command.sample_size = sample_size->valuedouble;
-            received_command.sample_tick = sample_tick->valuedouble;
-            received_command.need_predict = 0;
-            received_command.send_to_ws = 1;
-            xEventGroupSetBits(x_mpu_event_group, MPU_SAMPLING_READY_BIT);
-
-        } else if (strcmp(type->valuestring, "get_mpu_data_row_stop") == 0) {
-            xEventGroupSetBits(x_mpu_event_group, MPU_SAMPLING_UNREADY_BIT);
+            set_device_state(DEVICE_STATE_DATASET_SAMPLING);
+            change_mpu_state(&mpu_state, MPU_ACTION_SAMPLING, (model_type_enum)model_type->valuedouble, sample_size->valuedouble, sample_tick->valuedouble, 0, 1);
+            ws2812_blink(COLOR_MPU_SAMPLING);
+        } else if (strcmp(type->valuestring, "get_mpu_data_seq_stop") == 0) {
+            change_mpu_state(&mpu_state, MPU_ACTION_IDLE, (model_type_enum)0, 0, 0, 0, 0);
+            led_pop_state();
         } else if (strcmp(type->valuestring, "get_file_list") == 0) {
             memset(file_list_str, 0, FILE_LIST_STR_LEN);
             list_littlefs_files(file_list_str);
@@ -184,18 +179,11 @@ void handle_req_task(void* pvParameters)
                 load_and_check_model(&sample_size, NULL);
             }
 
-            memset(&received_command, 0, sizeof(received_command));
-            strcpy(received_command.model_name, model_name->valuestring);
-            received_command.type = MPU_COMMAND_TYPE_GET_ROW;
-            received_command.model_type = (model_type_enum)get_model_type_by_name(model_name->valuestring);
-            received_command.sample_size = sample_size;
-            received_command.sample_tick = get_sample_tick_by_name(model_name->valuestring);
-            received_command.need_predict = 1;
-            received_command.send_to_ws = 1;
+            // change_mpu_state_with_name(&mpu_state, model_name->valuestring, (model_type_enum)get_model_type_by_name(model_name->valuestring), sample_size, get_sample_tick_by_name(model_name->valuestring), 1, 1);
 
-            xEventGroupSetBits(x_mpu_event_group, MPU_SAMPLING_READY_BIT);
+            // xEventGroupSetBits(x_mpu_event_group, MPU_SAMPLING_READY_BIT);
         } else if (strcmp(type->valuestring, "stop_predict") == 0) {
-            xEventGroupSetBits(x_mpu_event_group, MPU_SAMPLING_UNREADY_BIT);
+            // xEventGroupSetBits(x_mpu_event_group, MPU_SAMPLING_UNREADY_BIT);
         } else if (strcmp(type->valuestring, "get_ledc_timer_config") == 0) {
             const cJSON* index = cJSON_GetObjectItem(payload, "index");
 

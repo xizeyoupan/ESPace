@@ -65,6 +65,9 @@ load_from_namespace_end:
 
 extern user_config_t user_config;
 
+// 全局设备状态变量
+device_state_t g_device_state = DEVICE_STATE_IDLE;
+
 void reset_user_config()
 {
     ESP_LOGI(TAG, "Reset user config");
@@ -199,6 +202,23 @@ void enable_periph_pwr()
     gpio_config(&io_conf);
 
     gpio_set_level(gpio_num_t(user_config.periph_pwr_gpio_num), 0);
+}
+
+// 设备状态管理函数
+device_state_t get_device_state(void)
+{
+    return g_device_state;
+}
+
+void set_device_state(device_state_t new_state)
+{
+    if (new_state >= DEVICE_STATE_MAX) {
+        ESP_LOGE(TAG, "Invalid device state: %d", new_state);
+        return;
+    }
+
+    ESP_LOGI(TAG, "Device state changed: %d -> %d", g_device_state, new_state);
+    g_device_state = new_state;
 }
 
 void disable_periph_pwr()

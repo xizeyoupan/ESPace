@@ -11,6 +11,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 #include "freertos/semphr.h"
+#include "freertos/task.h"
 
 #include "driver/rmt_tx.h"
 
@@ -24,9 +25,11 @@
 static const char* TAG = "WS2812_SERVICE";
 extern EventGroupHandle_t s_ws2812_event_group;
 
-uint32_t target_color = COLOR_NONE;
 extern user_config_t user_config;
-SemaphoreHandle_t ws2812_mutex;
+
+// LED状态栈全局变量
+led_state_stack_t g_led_stack;
+extern TaskHandle_t ws2812_task_handle;
 
 rmt_encoder_handle_t ws2812_encoder;
 rmt_encoder_handle_t ws2812_reset_encoder;
@@ -65,8 +68,9 @@ void ws2812_send_pixel(uint32_t color)
 
 void ws2812_init()
 {
-    ws2812_mutex = xSemaphoreCreateMutex();
-    configASSERT(ws2812_mutex);
+
+    // 初始化LED状态栈
+    led_stack_init();
 
     rmt_tx_channel_config_t tx_chan_config = {};
     tx_chan_config.clk_src = RMT_CLK_SRC_DEFAULT;
@@ -88,23 +92,123 @@ void ws2812_init()
 
 void ws2812_set_static_color(uint32_t color)
 {
-    xEventGroupClearBits(s_ws2812_event_group, WS2812_BLINK_BIT | WS2812_BREATHE_BIT);
-    xEventGroupSetBits(s_ws2812_event_group, WS2812_STATIC_BIT);
-    xSemaphoreTake(ws2812_mutex, portMAX_DELAY);
-    ws2812_send_pixel(color);
-    xSemaphoreGive(ws2812_mutex);
+    led_push_state(LED_MODE_STATIC, color, 0, 0, portMAX_DELAY); // 静态颜色，无限时长
 }
 
 void ws2812_blink(uint32_t color)
 {
-    target_color = color;
-    xEventGroupClearBits(s_ws2812_event_group, WS2812_STATIC_BIT | WS2812_BREATHE_BIT);
-    xEventGroupSetBits(s_ws2812_event_group, WS2812_BLINK_BIT);
+    led_push_state(LED_MODE_BLINK, color, 0, 400, portMAX_DELAY); // 400ms频率，无限时长
 }
 
 void ws2812_breathe(uint32_t color)
 {
-    target_color = color;
-    xEventGroupClearBits(s_ws2812_event_group, WS2812_STATIC_BIT | WS2812_BLINK_BIT);
-    xEventGroupSetBits(s_ws2812_event_group, WS2812_BREATHE_BIT);
+    led_push_state(LED_MODE_BREATHE, color, 0, 10, portMAX_DELAY); // 10ms频率，无限时长
+}
+
+void ws2812_gradient(uint32_t color1, uint32_t color2, uint32_t freq)
+{
+    led_push_state(LED_MODE_GRADIENT, color1, color2, freq, portMAX_DELAY); // 渐变模式，无限时长
+}
+
+// ================== LED状态栈管理API ==================
+
+led_status_t led_stack_init()
+{
+    g_led_stack.mutex = xSemaphoreCreateMutex();
+    configASSERT(g_led_stack.mutex);
+    g_led_stack.top = -1; // 空栈
+
+    ESP_LOGI(TAG, "LED state stack initialized");
+    return LED_OK;
+}
+
+led_status_t led_push_state(led_mode_t mode, uint32_t color1, uint32_t color2, uint32_t freq, uint32_t duration_ms)
+{
+    if (xSemaphoreTake(g_led_stack.mutex, portMAX_DELAY) != pdTRUE) {
+        return LED_INVALID_PARAM;
+    }
+
+    // 检查栈是否已满
+    if (g_led_stack.top >= LED_STATE_STACK_MAX - 1) {
+        xSemaphoreGive(g_led_stack.mutex);
+        ESP_LOGE(TAG, "LED state stack full");
+        return LED_STACK_FULL;
+    }
+
+    // 压栈新状态
+    g_led_stack.top++;
+    led_state_t* state = &g_led_stack.states[g_led_stack.top];
+
+    // 初始化状态
+    state->mode = mode;
+    state->color1 = color1;
+    state->color2 = color2;
+    state->freq = freq;
+    state->duration_ms = duration_ms;
+    state->remaining_ms = duration_ms;
+    state->start_time = xTaskGetTickCount() * portTICK_PERIOD_MS;
+    state->elapsed_ms = 0;
+
+    xSemaphoreGive(g_led_stack.mutex);
+
+    // 通知LED任务有新状态
+    ws2812_notify_state_change();
+
+    return LED_OK;
+}
+
+led_status_t led_pop_state()
+{
+    if (xSemaphoreTake(g_led_stack.mutex, portMAX_DELAY) != pdTRUE) {
+        return LED_INVALID_PARAM;
+    }
+
+    // 检查栈是否为空
+    if (g_led_stack.top < 0) {
+        xSemaphoreGive(g_led_stack.mutex);
+        return LED_STACK_EMPTY;
+    }
+
+    g_led_stack.top--;
+    xSemaphoreGive(g_led_stack.mutex);
+
+    ESP_LOGI(TAG, "LED state popped, new top: %d", g_led_stack.top);
+    return LED_OK;
+}
+
+led_state_t* led_get_current_state()
+{
+    if (xSemaphoreTake(g_led_stack.mutex, portMAX_DELAY) != pdTRUE) {
+        return NULL;
+    }
+
+    if (g_led_stack.top < 0) {
+        xSemaphoreGive(g_led_stack.mutex);
+        return NULL;
+    }
+
+    led_state_t* state = &g_led_stack.states[g_led_stack.top];
+    xSemaphoreGive(g_led_stack.mutex);
+    return state;
+}
+
+led_status_t led_clear_stack()
+{
+    if (xSemaphoreTake(g_led_stack.mutex, portMAX_DELAY) != pdTRUE) {
+        return LED_INVALID_PARAM;
+    }
+
+    g_led_stack.top = -1;
+    xSemaphoreGive(g_led_stack.mutex);
+
+    ESP_LOGI(TAG, "LED state stack cleared");
+    return LED_OK;
+}
+
+void ws2812_notify_state_change()
+{
+    // 通知LED任务状态改变
+    if (ws2812_task_handle != NULL) {
+        xTaskNotifyGive(ws2812_task_handle);
+    }
 }
