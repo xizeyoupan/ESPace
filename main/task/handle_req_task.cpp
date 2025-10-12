@@ -16,6 +16,7 @@
 #include "task/wand_server_task.h"
 
 #include "service/http_service.h"
+#include "service/io_lock_service.h"
 #include "service/json_helper.h"
 #include "service/littlefs_service.h"
 #include "service/mpu_service.h"
@@ -38,6 +39,7 @@ extern mpu_command_t received_command;
 extern EventGroupHandle_t x_mpu_event_group;
 extern MessageBufferHandle_t xMessageBufferReqRecv;
 extern uint8_t* tflite_model_buf;
+extern dac_cont_wav_t dac_cont_wav;
 
 #define FILE_LIST_STR_LEN 4096
 char file_list_str[FILE_LIST_STR_LEN];
@@ -272,9 +274,10 @@ void handle_req_task(void* pvParameters)
             const cJSON* freq = cJSON_GetObjectItem(payload, "freq");
             const cJSON* channel = cJSON_GetObjectItem(payload, "channel");
             load_dac_cont_data_from_json(payload);
-            start_dac_continuous_by_dma(freq->valuedouble, channel->valuedouble, &user_ret);
+            enable_dac_continuous_by_dma(freq->valuedouble, dac_cont_wav.length, channel->valuedouble, &user_ret, FUNC_GEN_HOLDER);
+            start_dac_continuous_by_dma(dac_cont_wav.data_wav, dac_cont_wav.length, &user_ret);
         } else if (strcmp(type->valuestring, "stop_dac_dma") == 0) {
-            stop_dac_continuous_by_dma(&user_ret);
+            disable_dac_continuous_by_dma(&user_ret, FUNC_GEN_HOLDER);
         }
 
         if (user_ret.esp_err != ESP_OK) {

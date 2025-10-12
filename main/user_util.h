@@ -21,6 +21,7 @@ int get_model_type_by_name(char* name);
 size_t get_sample_tick_by_name(char* name);
 uint32_t get_color_by_name(char* name);
 void enable_periph_pwr();
+void disable_periph_pwr();
 void malloc_all_buffer();
 
 cJSON* toCjsonObj(const void* obj, const StructInfo* info);

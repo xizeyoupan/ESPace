@@ -24,6 +24,8 @@ idf_component_register(
     "./peripherals/ledec_pwm.cpp"
     "./peripherals/cosine_wave.cpp"
     "./peripherals/func_wave.cpp"
+    "./peripherals/user_uart.cpp"
+    "./peripherals/video2wave.cpp"
     INCLUDE_DIRS
     "."
     "./service"

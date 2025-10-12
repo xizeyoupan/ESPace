@@ -34,6 +34,7 @@ static void periodic_timer_callback(void* arg)
 void into_sleep(void* btn)
 {
     gpio_set_level(gpio_num_t(user_config.periph_pwr_gpio_num), 1);
+    gpio_pullup_en(gpio_num_t(user_config.periph_pwr_gpio_num));
     ESP_LOGW(TAG, "Into sleep");
     vTaskDelay(pdMS_TO_TICKS(100));
     esp_deep_sleep_start();

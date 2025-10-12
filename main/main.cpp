@@ -28,6 +28,8 @@
 #include <cstdint>
 #include <cstring>
 
+#include "peripherals/user_uart.h"
+
 user_config_t user_config;
 
 static const char* TAG = "MAIN";
@@ -43,14 +45,17 @@ extern "C" void app_main(void)
     }
     ESP_ERROR_CHECK(ret);
 
+    load_user_config();
+    disable_periph_pwr();
     cjson_hook_init(NULL);
     littlefs_init();
     list_littlefs_files(NULL);
-    load_user_config();
     io_mutex_init();
     malloc_all_buffer();
     tflite_init();
+    vTaskDelay(pdMS_TO_TICKS(100));
 
+    uart0_init();
     enable_periph_pwr();
     vTaskDelay(pdMS_TO_TICKS(100));
 
@@ -67,6 +72,8 @@ extern "C" void app_main(void)
     xTaskCreatePinnedToCore(&tflite_task, "tflite_task", 1024 * 5, NULL, 9, NULL, 1);
 
     xTaskCreatePinnedToCore(&scan_button_task, "button_task", 1024 * 3, NULL, 5, NULL, 1);
+
+    xTaskCreatePinnedToCore(&test_uart, "UART", 1024 * 10, NULL, 5, NULL, 1);
 
     // xTaskCreatePinnedToCore(&play_mp3_task, "MP3", 1024 * 10, NULL, 5, NULL, 1);
 

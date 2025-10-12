@@ -49,7 +49,7 @@ void websocket_send_task(void* pvParameters)
         size_t msg_size = xMessageBufferReceive(xMessageBufferReqSend, buffer, user_config.ws_send_buf_size, portMAX_DELAY); // 读取完整消息
 
         if (server && current_ws_fd != -1) {
-            if (buffer[0] == 123) {
+            if (buffer[0] == 123) { // 123 is {
                 ws_send_data(buffer, msg_size, HTTPD_WS_TYPE_TEXT);
             } else {
                 ws_send_data(buffer, msg_size, HTTPD_WS_TYPE_BINARY);

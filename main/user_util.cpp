@@ -201,6 +201,17 @@ void enable_periph_pwr()
     gpio_set_level(gpio_num_t(user_config.periph_pwr_gpio_num), 0);
 }
 
+void disable_periph_pwr()
+{
+    gpio_config_t io_conf = {};
+    io_conf.intr_type = GPIO_INTR_DISABLE; // 禁用中断
+    io_conf.pin_bit_mask = (1ULL << user_config.periph_pwr_gpio_num); // 设置 GPIO
+    io_conf.mode = GPIO_MODE_OUTPUT; // 设置为输入模式
+    gpio_config(&io_conf);
+
+    gpio_set_level(gpio_num_t(user_config.periph_pwr_gpio_num), 1);
+}
+
 MessageBufferHandle_t xMessageBufferReqSend;
 MessageBufferHandle_t xMessageBufferReqRecv;
 MessageBufferHandle_t xMessageBufferMPUOut2CNN;

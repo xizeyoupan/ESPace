@@ -16,8 +16,10 @@ typedef struct {
     uint16_t length;
 } dac_cont_wav_t;
 
-void start_dac_continuous_by_dma(uint32_t freq, uint8_t chan, user_def_err_t* user_err);
-void stop_dac_continuous_by_dma(user_def_err_t* user_err);
+void enable_dac_continuous_by_dma(uint32_t freq, uint32_t bufsize, uint8_t chan, user_def_err_t* user_err, const char* holder);
+void disable_dac_continuous_by_dma(user_def_err_t* user_err, const char* holder);
+void start_dac_continuous_by_dma(uint8_t* buf, uint32_t bufsize, user_def_err_t* user_err);
+void start_dac_write_async_by_dma(uint8_t* buf, uint32_t bufsize, user_def_err_t* user_err);
 
 #ifdef __cplusplus
 }

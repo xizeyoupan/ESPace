@@ -31,6 +31,7 @@ extern "C" {
 #define LEDC_PWM_HOLDER "LEDC_PWM"
 #define DAC_COSINE_HOLDER "DAC_COSINE"
 #define FUNC_GEN_HOLDER "FUNC_GEN"
+#define VIDEO2WAVE_HOLDER "VIDEO2WAVE"
 
 typedef struct {
     SemaphoreHandle_t mutex; // 实际的资源锁
